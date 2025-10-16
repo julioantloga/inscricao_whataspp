@@ -11,11 +11,11 @@ def home():
 
 # GET com parâmetro
 @app.route("/job/<uuid>", methods=["GET"])
+
 def job(uuid):
     tenant_id, job_code = uuid.split("-")
     job = get_application(tenant_id,job_code)
-    
-    return job
+    return jsonify({"job_title": job})
 
 
 # POST: recebe JSON e retorna processado

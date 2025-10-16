@@ -101,7 +101,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer OPEN-AI-KEY"
+              "value": ""
             },
             {
               "name": "Content-Type",

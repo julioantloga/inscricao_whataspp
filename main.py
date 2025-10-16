@@ -15,6 +15,7 @@ def home():
 def job(uuid):
     tenant_id, job_code = uuid.split("-")
     job = get_application(tenant_id,job_code)
+    return jsonify({"message": "Olá!"})
     return jsonify({"job_title": job})
 
 

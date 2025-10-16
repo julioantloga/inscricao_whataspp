@@ -101,7 +101,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer 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"
+              "value": "Bearer OPEN-AI-KEY"
             },
             {
               "name": "Content-Type",
@@ -132,7 +132,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer EAATmSylRV1sBPuJaZCZAMZClJrcSW8N91KiIVLD47pXod9COocLShidOR7ZAzv80ZA5ZCnB9Wh7KtLUCoDupMSXwgU5KTPEPOokZB3X7b84hujsd2XkRYYCSO6uRckTlRi8NQjJMZBoZB2JiuWOvPmlX8FNUZCOup0AFxlzYZBE4wdCksZATHg5iqBps52vGPqPSCwZDZD"
+              "value": "Bearer META TOKEN"
             },
             {
               "name": "Content-Type",

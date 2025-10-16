@@ -16,7 +16,7 @@ def job(uuid):
     
     tenant_id, job_code = uuid.split("-")
     job = get_application(tenant_id,job_code)
-    return jsonify({"job_title": job["title"]})
+    return jsonify({"job_title": job[0]})
 
 
 # POST: recebe JSON e retorna processado

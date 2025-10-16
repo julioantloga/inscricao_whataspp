@@ -3,6 +3,8 @@ from sqlalchemy import text
 
 def get_application(tenant_id, job_code):
     
+    tenant_id = int(tenant_id)
+
     sql = text("""
         SELECT 
           title
@@ -13,4 +15,6 @@ def get_application(tenant_id, job_code):
     with engine.begin() as conn:
         job_name = conn.execute(sql, {"tid": tenant_id, "jid": job_code}).mappings().all()
     
+    print (job_name)
+
     return job_name

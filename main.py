@@ -1,18 +1,21 @@
 from flask import Flask, request, jsonify
-from db_config import engine
+from service.application import get_application
 
 app = Flask(__name__)
 
 # GET simples: retorna uma mensagem JSON
 @app.route("/", methods=["GET"])
 def home():
-    return jsonify({"message": "API está online!"})
+    return jsonify({"message": "Olá!"})
 
 
 # GET com parâmetro
-@app.route("/hello/<nome>", methods=["GET"])
-def hello(nome):
-    return jsonify({"mensagem": f"Olá, {nome}!"})
+@app.route("/job/<uuid>", methods=["GET"])
+def job(uuid):
+    tenant_id, job_code = uuid.split("-")
+    job = get_application(tenant_id,job_code)
+    
+    return job
 
 
 # POST: recebe JSON e retorna processado

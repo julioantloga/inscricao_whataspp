@@ -13,7 +13,7 @@ def home():
 @app.route("/job/<uuid>", methods=["GET"])
 
 def job(uuid):
-    uuid = uuid.get("uuid")
+    
     tenant_id, job_code = uuid.split("-")
     job = get_application(tenant_id,job_code)
     return jsonify({"job_title": job})

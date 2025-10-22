@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from service.application import set_application
 
 app = Flask(__name__)
 
@@ -14,12 +15,8 @@ def processar():
     data = request.get_json()  # pega o JSON enviado no body
     if not data:
         return jsonify({"erro": "JSON inválido"}), 400
-
-    return jsonify({
-        "mensagem": f"Recebido com sucesso!",
-        "dados_recebidos": data
-    })
-
+    
+    return set_application (data)
 
 # Executa localmente (Railway ignora essa parte no deploy)
 if __name__ == "__main__":

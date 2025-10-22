@@ -1,7 +1,10 @@
 from db_config import engine
 from sqlalchemy import text
 
-def get_application(tenant_id, job_code):
+def set_application(data):
+
+    return True
+
     sql = text("""
         SELECT 
             title

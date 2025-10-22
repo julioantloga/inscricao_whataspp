@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-from service.application import get_application
 
 app = Flask(__name__)
 
@@ -7,23 +6,6 @@ app = Flask(__name__)
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({"message": "Olá!"})
-
-
-# GET com parâmetro
-@app.route("/job/<uuid>", methods=["GET"])
-def job(uuid):
-    try:
-        tenant_id, job_code = uuid.split("-")
-        tenant_id = int(tenant_id)
-    except (ValueError, TypeError):
-        return jsonify({"error": "UUID inválido. Esperado: <tenant_id>-<job_code>"}), 400
-
-    job_data = get_application(tenant_id, job_code)
-
-    if not job_data:
-        return jsonify({"error": "Job não encontrado"}), 404
-
-    return jsonify({"job_title": job_data["title"]})
 
 
 # POST: recebe JSON e retorna processado
@@ -35,7 +17,7 @@ def processar():
 
     return jsonify({
         "mensagem": f"Recebido com sucesso!",
-        "dados_recebidos": {data}
+        "dados_recebidos": data
     })
 
 

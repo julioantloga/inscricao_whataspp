@@ -1,0 +1,255 @@
+CREATE TABLE demo.ats_jobposting (
+    id bigint NOT NULL,
+    name character varying(255) NOT NULL,
+    status character varying(50) NOT NULL,
+    positions integer NOT NULL,
+    limit_days integer,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    end_salary_range integer,
+    start_salary_range integer,
+    city character varying(255),
+    country character varying(255),
+    description text NOT NULL,
+    external_publication boolean NOT NULL,
+    external_publication_end_at timestamp with time zone,
+    external_publication_start_at timestamp with time zone,
+    hire_model character varying(255),
+    state character varying(255),
+    work_model character varying(255),
+    timezone character varying(255),
+    publication_path_segment character varying(255),
+    netvagas_external_publication boolean NOT NULL,
+    function_id integer,
+    google_for_jobs_external_publication boolean NOT NULL,
+    finalization_date timestamp with time zone,
+    already_suspended boolean NOT NULL,
+    already_canceled boolean NOT NULL,
+    linkedin_external_publication boolean NOT NULL,
+    seniority_level_id bigint,
+    unlisted_external_publication boolean NOT NULL,
+    careerjet_external_publication boolean NOT NULL,
+    jooble_external_publication boolean NOT NULL,
+    competencies smallint[] NOT NULL
+);
+
+CREATE TABLE demo.ats_candidate (
+    id bigint NOT NULL,
+    name character varying(255) NOT NULL,
+    email character varying(255) NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    birthdate date,
+    cpf character varying(11),
+    disabilities character varying(255)[],
+    gender character varying(255),
+    marital_status character varying(255),
+    portfolio text NOT NULL,
+    professional_goal text NOT NULL,
+    professional_summary text NOT NULL,
+    realocation_possibility boolean NOT NULL,
+    rg character varying(14) NOT NULL,
+    salary_expectation integer,
+    travel_possibility boolean NOT NULL,
+    address_administrative_region character varying(255),
+    address_city character varying(255),
+    address_country character varying(255),
+    address_number character varying(255),
+    address_state character varying(255),
+    address_street character varying(255),
+    address_postal_code character varying(255),
+    recent_logic double precision,
+    recent_motivational double precision,
+    recent_ocp double precision,
+    recent_operational double precision,
+    recent_raw_potential double precision,
+    recent_sjt double precision,
+    address_additional character varying(255),
+    attachment character varying(100),
+    uuid uuid NOT NULL,
+    antivirus_file_status character varying(255) NOT NULL,
+    resume_summary text NOT NULL,
+    attachment_content text NOT NULL,
+    attachment_processing_status character varying(255) NOT NULL,
+    has_search_index boolean NOT NULL
+);
+
+CREATE TABLE demo.ats_recruitmentprocess (
+    id bigint NOT NULL,
+    status character varying(255) NOT NULL,
+    subscription_type character varying(255) NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    candidate_id bigint NOT NULL,
+    stage_id bigint NOT NULL,
+    logic double precision,
+    motivational double precision,
+    ocp double precision,
+    operational double precision,
+    raw_potential double precision,
+    sjt double precision,
+    candidate_source_option character varying(255),
+    stage_type character varying(50) NOT NULL,
+    admission_date date,
+    salary double precision,
+    indication_email character varying(255),
+    job_posting_id bigint NOT NULL
+);
+
+
+CREATE TABLE demo.ats_candidatephonecontact (
+    id bigint NOT NULL,
+    number character varying(255) NOT NULL,
+    type character varying(255) NOT NULL,
+    country_code integer NOT NULL,
+    candidate_id bigint NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
+
+CREATE TABLE demo.ats_candidatesourceoption (
+    id bigint NOT NULL,
+    name character varying(255) NOT NULL,
+    visible boolean NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    is_protected boolean NOT NULL,
+    sequence smallint NOT NULL,
+    slug character varying(50) NOT NULL
+);
+
+
+
+CREATE TABLE demo.ats_question (
+    id bigint NOT NULL,
+    description character varying(255) NOT NULL,
+    type character varying(255) NOT NULL,
+    required boolean NOT NULL,
+    sequence integer NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    job_posting_id bigint NOT NULL
+);
+
+CREATE TABLE demo.ats_questionalternative (
+    id bigint NOT NULL,
+    description character varying(255) NOT NULL,
+    sequence integer NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    question_id bigint NOT NULL
+);
+
+
+
+CREATE TABLE demo.ats_answeralternative (
+    id bigint NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    question_alternative_id bigint NOT NULL,
+    recruitment_process_id bigint NOT NULL
+);
+
+CREATE TABLE demo.ats_answertext (
+    id bigint NOT NULL,
+    text text,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    question_id bigint NOT NULL,
+    recruitment_process_id bigint NOT NULL
+);
+
+CREATE TABLE demo.ats_attachment (
+    id bigint NOT NULL,
+    filename character varying(255) NOT NULL,
+    mimetype character varying(255) NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    file character varying(100) NOT NULL
+);
+
+ats_jobposting
+ats_candidate
+ats_recruitmentprocess
+ats_question
+ats_questionalternative
+ats_answeralternative
+ats_answertext
+
+
+-- Table: public.ats_chat_stage
+
+-- DROP TABLE IF EXISTS public.ats_chat_stage;
+
+CREATE TABLE IF NOT EXISTS public.ats_chat_stage
+(
+    id integer NOT NULL DEFAULT nextval('public.chat_sessions_id_seq'::regclass),
+    candidate_phone_number_id character varying(30) COLLATE pg_catalog."default" NOT NULL,
+    job_public_code character varying(100) COLLATE pg_catalog."default",
+    step integer DEFAULT 0,
+    context jsonb DEFAULT '{}'::jsonb,
+    updated_at timestamp without time zone DEFAULT now(),
+    status character varying(50) COLLATE pg_catalog."default" DEFAULT 'em_andamento'::character varying,
+    job_posting_id integer,
+    tenant_name character varying(100) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
+    CONSTRAINT chat_sessions_pkey PRIMARY KEY (id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.ats_chat_stage
+    OWNER to postgres;
+-- Index: idx_chat_sessions_updated_at
+
+-- DROP INDEX IF EXISTS public.idx_chat_sessions_updated_at;
+
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_updated_at
+    ON public.ats_chat_stage USING btree
+    (updated_at DESC NULLS FIRST)
+    TABLESPACE pg_default;
+
+
+    CREATE TABLE demo.ats_candidateregisterfield (
+    id bigint NOT NULL,
+    key character varying(255) NOT NULL,
+    visible character varying(255) NOT NULL,
+    required character varying(255) NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
+ALTER TABLE demo.ats_candidateregisterfield OWNER TO postgres;
+ALTER TABLE demo.ats_candidateregisterfield ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME demo.ats_candidateregisterfield_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+
+UPDATE demo1.ats_chat_stage
+SET context = '{
+  "content": 
+    {"step": 0, "text": ""}
+}'::jsonb
+WHERE id = 1;
+
+
+UPDATE demo1.ats_jobposting
+SET question_sequence = '{
+  "steps": {
+    "total_questions": 4,
+    "questions": [
+      { "id": 1, "name":"Nome completo", "type": "default", "sequence": 1, "answer_type": "text", "answer_options":[]},
+      { "id": 2, "name":"Email", "type": "default", "sequence": 2, "answer_type": "text", "answer_options":[]},
+      { "id": 15, "name":"CPF", "type": "default", "sequence": 3, "answer_type": "text", "answer_options":[]},
+      { "id": 1, "name":"Descreva sua experiência com frameworks como React ou Django.", "type": "customized", "sequence": 1, "answer_type": "text", "answer_options":[]},
+      { "id": 2, "name":"Descreva sua experiência com frameworks como React ou Django.", "type": "customized", "sequence": 1, "answer_type": "text", "answer_options":[]},
+    ]
+  }
+}'::jsonb
+WHERE id = 1;
+
+$('Webhook POST').first().body.entry[0].value.messages.from

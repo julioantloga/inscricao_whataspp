@@ -27,18 +27,15 @@ def job(uuid):
 
 
 # POST: recebe JSON e retorna processado
-@app.route("/processar", methods=["POST"])
+@app.route("/add_application", methods=["POST"])
 def processar():
     data = request.get_json()  # pega o JSON enviado no body
     if not data:
         return jsonify({"erro": "JSON inválido"}), 400
 
-    nome = data.get("nome")
-    idade = data.get("idade")
-
     return jsonify({
         "mensagem": f"Recebido com sucesso!",
-        "dados_recebidos": {"nome": nome, "idade": idade}
+        "dados_recebidos": {data}
     })
 
 

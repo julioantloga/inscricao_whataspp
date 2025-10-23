@@ -234,7 +234,7 @@ SET context = '{
   "content": 
     {"step": 0, "text": ""}
 }'::jsonb
-WHERE id = 1;
+WHERE id = 1; 
 
 
 UPDATE demo1.ats_jobposting

@@ -252,4 +252,4 @@ SET question_sequence = '{
 }'::jsonb
 WHERE id = 1;
 
-$('Webhook POST').first().body.entry[0].value.messages.from
+

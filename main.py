@@ -14,12 +14,39 @@ def home():
 def add_application():
     try:
         data = request.get_json(force=True)   
-        context = data.get("context")
+        # Extrai o corpo principal
+        body = data[0]["response"]["output"]["body"]
 
-        # Verifica campos esperados
-        if not all(k in data for k in ["context", "phone", "tenant_name", "job_posting_id"]):
-            #set_application (data)
-            return jsonify({"erro": "Campos obrigatórios faltando"}), 400
+        # Cria variáveis individuais
+        name = body["name"]
+        phone = body["phone"]
+        email = body["email"]
+        document = body["document"]
+        tenant_name = body["tenant_name"]
+        job_posting_id = body["job_posting_id"]
+
+        # Inferir tipo de documento automaticamente
+        if len(document.replace(".", "").replace("-", "")) == 11:
+            document_type = "CPF"
+        elif len(document.replace(".", "").replace("-", "")) == 14:
+            document_type = "CNPJ"
+        else:
+            document_type = "Outro"
+
+        # Cria o DataFrame com as perguntas
+        df_questions = pd.DataFrame(body["questions"])
+
+        # Exibe resultados
+        print("📋 Variáveis extraídas:")
+        print(f"Name: {name}")
+        print(f"Phone: {phone}")
+        print(f"Email: {email}")
+        print(f"Document: {document}")
+        print(f"Document Type: {document_type}")
+        print(f"Tenant Name: {tenant_name}")
+        print(f"Job Posting ID: {job_posting_id}")
+        print("\n📊 DataFrame de perguntas:")
+        print(df_questions)
 
         return data
 

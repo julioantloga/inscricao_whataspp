@@ -17,7 +17,7 @@ def add_application():
     try:
         data = request.get_json(force=True)   
         # Extrai o corpo principal
-        body = data[0]["response"]["output"]["body"]
+        body = data[0]["output"]["body"]
 
         # Cria variáveis individuais
         name = body["name"]

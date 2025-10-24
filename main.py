@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
-from service.application import set_application
-import json
+#from service.application import set_application
 import pandas as pd
 
 app = Flask(__name__)

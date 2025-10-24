@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-#from service.application import set_application
+from service.application import create_candidate, create_candidate_phone, create_recruitment_process, save_answers
 import pandas as pd
 import json
 
@@ -37,17 +37,17 @@ def add_application():
         # Cria o DataFrame com as perguntas
         df_questions = pd.DataFrame(body["questions"])
 
-        # Exibe resultados
-        print("📋 Variáveis extraídas:")
-        print(f"Name: {name}")
-        print(f"Phone: {phone}")
-        print(f"Email: {email}")
-        print(f"Document: {document}")
-        print(f"Document Type: {document_type}")
-        print(f"Tenant Name: {tenant_name}")
-        print(f"Job Posting ID: {job_posting_id}")
-        print("\n📊 DataFrame de perguntas:")
-        print(df_questions)
+        #cria o candidato
+        candidate_id = create_candidate(tenant_name,name,email,document)
+
+        #cria telefone do candidato
+        create_candidate_phone(tenant_name, candidate_id, phone)
+
+        #registra a inscrição
+        recruitment_process_id = create_recruitment_process(tenant_name, candidate_id, job_posting_id)
+
+        #salva as respostas
+        #save_answers(df_questions, recruitment_process_id, tenant_name)
 
         return data
 

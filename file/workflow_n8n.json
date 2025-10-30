@@ -253,3 +253,56 @@ SET question_sequence = '{
 WHERE id = 1;
 
 
+[
+  {
+    "output": {
+      "body": {
+        "name": "Julio",
+        "phone": "5516988043496",
+        "document": "351.526.988-62",
+        "email": "Juliopucciarelli@gmail.com",
+        "tenant_name": "demo2",
+        "job_posting_id": 1,
+        "questions": [
+          {
+            "id": 1,
+            "name": "Qual o seu nome completo?",
+            "answer": "Julio",
+            "answer_type": "text",
+            "answer_options": []
+          },
+          {
+            "id": 2,
+            "name": "Qual o seu email?",
+            "answer": "Juliopucciarelli@gmail.com",
+            "answer_type": "text",
+            "answer_options": []
+          },
+          {
+            "id": 15,
+            "name": "Por favor digite seu CPF (somente os números, sem pontos e traços):",
+            "answer": "351.526.988-62",
+            "answer_type": "text",
+            "answer_options": []
+          },
+          {
+            "id": 3,
+            "name": "Descreva sua experiência com Figma e outras ferramentas",
+            "answer": "Boa",
+            "answer_type": "text",
+            "answer_options": []
+          },
+          {
+            "id": 4,
+            "name": "Por que deseja trabalhar conosco?",
+            "answer": "Hahahd",
+            "answer_type": "text",
+            "answer_options": []
+          }
+        ]
+      }
+    }
+  }
+]
+
+body.entry[0].chenges[0].value.messages[0].type = "document"

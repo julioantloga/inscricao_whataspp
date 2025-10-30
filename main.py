@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
-from service.application import create_candidate, create_candidate_phone, create_recruitment_process, save_answers
+from service.application import create_candidate, create_candidate_phone, create_recruitment_process, get_chat_stage_by_id, update_chat_stage
 import pandas as pd
 import json
+from datetime import datetime
+
 
 app = Flask(__name__)
 
@@ -9,6 +11,79 @@ app = Flask(__name__)
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({"message": "Olá!"})
+
+# POST: recebe JSON e retorna processado
+from service.application import get_chat_stage_by_id, update_chat_stage
+
+@app.route("/update_session", methods=["POST"])
+def update_session():
+    try:
+        payload = request.get_json(force=True)
+
+        candidate_message = payload.get("candidate_message")
+        system_message = payload.get("system_message")
+        question_id = payload.get("question_id")
+        interaction = payload.get("interaction")
+        chat_stage_id = payload.get("chat_stage_id")
+        tenant_name = payload.get("tenant_name")
+        status = payload.get("status")
+
+        if not all([candidate_message, system_message, interaction, chat_stage_id, tenant_name, status]):
+            return jsonify({"error": "Campos obrigatórios ausentes"}), 400
+
+        now_iso = datetime.utcnow().isoformat() + "Z"
+
+        # Busca os dados atuais (sem expor engine aqui)
+        result = get_chat_stage_by_id(chat_stage_id, tenant_name)
+        if not result:
+            return jsonify({"error": "Registro não encontrado"}), 404
+
+        conversation = result["conversation"] or []
+        if isinstance(conversation, str):
+            conversation = json.loads(conversation)
+
+        conversation.extend([
+            {"date": now_iso, "from": "system", "message": system_message},
+            {"date": now_iso, "from": "candidate", "message": candidate_message}
+        ])
+
+        context = result["context"] or {}
+        if isinstance(context, str):
+            context = json.loads(context)
+
+        if interaction == "answer":
+            updated = False
+            for question in context.get("steps", {}).get("questions", []):
+                if question.get("id") == question_id:
+                    question["candidate_answer"] = candidate_message
+                    updated = True
+                    break
+
+            if not updated:
+                return jsonify({"error": f"Questão com id {question_id} não encontrada no contexto"}), 400
+
+            update_chat_stage(
+                chat_stage_id=chat_stage_id,
+                tenant_name=tenant_name,
+                conversation=conversation,
+                status=status,
+                context=context
+            )
+        else:
+            update_chat_stage(
+                chat_stage_id=chat_stage_id,
+                tenant_name=tenant_name,
+                conversation=conversation,
+                status=status
+            )
+
+        return jsonify({"status": "OK"}), 200
+
+    except Exception as e:
+        print("Erro interno:", e)
+        return jsonify({"error": str(e)}), 500
+
+
 
 # POST: recebe JSON e retorna processado
 @app.route("/add_application", methods=["POST"])

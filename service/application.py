@@ -210,3 +210,41 @@ def save_answers(df_questions, recruitment_process_id: int, tenant_name: str):
                 print(f"⚠️ Tipo de resposta desconhecido: {answer_type} (pergunta {question_id})")
 
     print("✅ Todas as respostas foram registradas com sucesso.")
+
+def get_chat_stage_by_id(chat_stage_id, tenant_name):
+    """
+    Busca os dados atuais (conversation e context) da tabela ats_chat_stage.
+    """
+    with engine.begin() as conn:
+        select_sql = text(f"""
+            SELECT conversation, context
+            FROM {tenant_name}.ats_chat_stage
+            WHERE id = :chat_stage_id
+        """)
+        result = conn.execute(select_sql, {"chat_stage_id": chat_stage_id}).mappings().first()
+        return result
+
+def update_chat_stage(chat_stage_id, tenant_name, conversation, status, context=None):
+    """
+    Atualiza os campos conversation, status e opcionalmente context da tabela ats_chat_stage.
+    """
+    with engine.begin() as conn:
+        update_fields = {
+            "conversation": json.dumps(conversation),
+            "status": status,
+            "chat_stage_id": chat_stage_id
+        }
+
+        update_sql = f"""
+            UPDATE {tenant_name}.ats_chat_stage
+            SET conversation = :conversation,
+                status = :status
+        """
+
+        if context is not None:
+            update_fields["context"] = json.dumps(context)
+            update_sql += ", context = :context"
+
+        update_sql += " WHERE id = :chat_stage_id"
+
+        conn.execute(text(update_sql), update_fields)

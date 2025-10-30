@@ -1,0 +1,759 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -576,
+        -240
+      ],
+      "id": "1b522c33-fd40-49aa-9948-9f05dab8969c",
+      "name": "Webhook",
+      "webhookId": "2164cb34-4fa0-4782-b88b-c9fed5a1cfb4"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "Você não tem nenhuma inscrição iniciada, por favor, informe corretamente o código da vaga que deseja se inscrever.",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1488,
+        -352
+      ],
+      "id": "3619227a-ca60-455e-999b-0cbf7a5b59aa",
+      "name": "Enviar texto",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message_type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "48872861-8026-4aff-a6ee-9a64448ae934"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "id text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5dbe065d-dcc8-4052-849c-acacd6f402f4",
+                    "leftValue": "={{ $json.message_type }}",
+                    "rightValue": "audio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "if audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8b753b65-b8f6-4021-9eaa-932a8a3ad71b",
+                    "leftValue": "={{ $json.message_type }}",
+                    "rightValue": "document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "if document"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -224,
+        -256
+      ],
+      "id": "81efffd2-ba58-4b5d-846c-9238f0c2e1be",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Parser universal para mensagens do Evolution API (WhatsApp)\n * Suporta: texto, áudio e documento\n * Detecta automaticamente o tipo de mensagem\n */\n\nconst body = $json?.body || {};\nconst event = body?.event || null;\n\nif (body?.data?.key?.fromMe === true) {\n  return []; // Para execução\n}\n\n// --- Extrai remetente ---\nconst remoteJid =\n  body?.data?.key?.remoteJid ||\n  body?.data?.remoteJid ||\n  body?.sender ||\n  null;\n\nconst phone = remoteJid ? remoteJid.replace(\"@s.whatsapp.net\", \"\") : null;\n\n// --- Extrai informações da mensagem ---\nconst message = body?.data?.message || {};\nconst messageType = body?.data?.messageType || \"unknown\";\n\nlet type = messageType;\nlet content = null;\n\n// --- Verifica e extrai o conteúdo principal ---\nswitch (messageType) {\n  case \"conversation\":\n  case \"text\":\n    type = \"text\";\n    content = message?.conversation ?? message?.text?.body ?? null;\n    //Verifica se o texto tem a vaga\n    if (content) {\n      let job_posting_id = null;\n      let tennant_name = null;\n      \n      const regex = /@VAGA(\\d+)-([A-Za-z0-9_-]+)/i;\n      const match = content.match(regex);\n      if (match) {\n        job_posting_id = match[1];\n        tennant_name = match[2];\n      }\n    }\n    break;\n\n  case \"audioMessage\":\n  case \"audio\":\n    type = \"audio\";\n    content = message?.audioMessage?.url ?? message?.audioMessage?.id ?? null;\n    break;\n\n  case \"documentMessage\":\n  case \"document\":\n    type = \"document\";\n    content = {\n      file_name: message?.documentMessage?.fileName ?? null,\n      mime_type: message?.documentMessage?.mimetype ?? null,\n      url: message?.documentMessage?.url ?? null,\n      file_size: message?.documentMessage?.fileLength ?? null,\n    };\n    break;\n\n  default:\n    type = \"unknown\";\n    content = null;\n    break;\n}\n\n// --- Retorno padronizado ---\nreturn [\n  {\n    json: {\n      event,\n      phone,\n      raw_remoteJid: remoteJid,\n      message_type: type,\n      message_content: content,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -240
+      ],
+      "id": "0d8dd787-b731-4ee9-bb15-816f5cb14137",
+      "name": "data"
+    },
+    {
+      "parameters": {
+        "url": "={{ $node[\"Webhook\"].json[\"body\"][\"server_url\"] }}/media/{{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"key\"][\"id\"] }}?instance={{ $node[\"Webhook\"].json[\"body\"][\"instance\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node[\"Webhook\"].json[\"body\"][\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -336,
+        -848
+      ],
+      "id": "c09df3e1-a1fc-45fb-8fbb-de27127eab8e",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Converte o áudio em Base64 (vindo do Webhook) em binário\n * para uso no nó \"OpenAI - Transcribe a recording\"\n * Funciona mesmo que o nó Webhook esteja distante na execução.\n */\n\n// Puxa os dados diretamente do nó \"Webhook\"\nconst webhookData = $node[\"Webhook\"].json?.body?.data;\n\n// Extrai o base64 do áudio\nconst base64Audio = webhookData?.message?.base64;\n\nif (!base64Audio) {\n  throw new Error(\"Nenhum áudio em base64 foi encontrado no nó 'Webhook'.\");\n}\n\n// Extrai o número do remetente\nconst remoteJid = webhookData?.key?.remoteJid;\nconst phone = remoteJid ? remoteJid.replace(\"@s.whatsapp.net\", \"\") : null;\n\n// Retorna o binário pronto para o Whisper\nreturn [\n  {\n    json: {\n      phone,\n    },\n    binary: {\n      audio: {\n        data: Buffer.from(base64Audio, \"base64\"),\n        mimeType: \"audio/ogg\",\n        fileName: \"whatsapp-audio.ogg\",\n      },\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -144
+      ],
+      "id": "6aebcbdf-7035-46ac-9eef-616024d337da",
+      "name": "audio_converter"
+    },
+    {
+      "parameters": {
+        "jsCode": "const doc = $node[\"Webhook\"].json.body?.data?.message;\n\nif (!doc?.base64) {\n  throw new Error(\"Documento sem conteúdo base64 detectado!\");\n}\n\nreturn [\n  {\n    json: {\n      fileName: doc.fileName,\n      mimeType: doc.mimetype,\n    },\n    binary: {\n      document: {\n        data: Buffer.from(doc.base64, 'base64'),\n        mimeType: doc.mimetype,\n        fileName: doc.fileName || 'arquivo.pdf',\n      },\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        48
+      ],
+      "id": "fef001cc-9dd1-4b51-a3a8-f8c5a0c5ecb1",
+      "name": "document_converter"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Você é um assistente de mensagens e precisa avaliar os Jsons de entrada e identificar a mensagem enviada pelo usuário:\n- Se for um áudio, retorne SOMENTE o texto da transcrição do audio que o usuário enviou.\n- Se for um texto, retorne SOMENTE o texto que o usuário escreveu.\n- Se for um documento, retorne SOMENTE o link público para visualização do documento.\n- Não retorne o tipo da mensagem e outra informação que não seja o que foi especificado acima.",
+        "options": {
+          "systemMessage": "=Json de entrada:\n{{ JSON.stringify($node[\"Webhook\"].json, null, 2) }}\n\n{{ \n  $if(\n    $(\"transcricao\").isExecuted,\n    \"JSON da transcrição de áudio:\\n\" + JSON.stringify($node[\"transcricao\"].json, null, 2),\n    \"\"\n  )\n}}\n\n{{ \n  $if(\n    $(\"upload_file\").isExecuted,\n    \"JSON do upload de documento:\\n\" + JSON.stringify($node[\"upload_file\"].json, null, 2),\n    \"\"\n  )\n}}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        -848
+      ],
+      "id": "a7a9c7e1-3115-49f1-8839-29a74b52ae62",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -688,
+        -672
+      ],
+      "id": "638c975c-b973-4b2d-9fb7-7759cad23565",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "wjVVa1OwzrlzaMG5",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryPropertyName": "audio",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        272,
+        -144
+      ],
+      "id": "7c599b63-cf5b-49e5-84b3-d1ae1cc29833",
+      "name": "transcricao",
+      "credentials": {
+        "openAiApi": {
+          "id": "wjVVa1OwzrlzaMG5",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "document",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "root",
+          "mode": "list",
+          "cachedResultName": "/ (Root folder)",
+          "cachedResultUrl": "https://drive.google.com/drive"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        272,
+        48
+      ],
+      "id": "14e0474a-27c4-4113-9132-7bf894041ca4",
+      "name": "upload_file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "64Qzp8RKi4OH1zrO",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "92a6a877-7058-462e-9176-dbdec8867e10",
+              "name": "output",
+              "value": "={{\n$if(\n  ($node[\"data\"].json.message_type ?? $node[\"Webhook\"].json.body?.data?.messageType) === \"text\",\n  $node[\"data\"].json?.message_content ?? \"\",\n  $if(\n    ($node[\"data\"].json.message_type ?? $node[\"Webhook\"].json.body?.data?.messageType) === \"audio\" || \n    ($node[\"data\"].json.message_type ?? $node[\"Webhook\"].json.body?.data?.messageType) === \"audioMessage\",\n    $if(\n      $(\"transcricao\").isExecuted,\n      $node[\"transcricao\"].json?.text ?? $node[\"transcricao\"].json?.data?.text ?? \"\",\n      \"\"\n    ),\n    $if(\n      ($node[\"data\"].json.message_type ?? $node[\"Webhook\"].json.body?.data?.messageType) === \"document\" || \n      ($node[\"data\"].json.message_type ?? $node[\"Webhook\"].json.body?.data?.messageType) === \"documentMessage\",\n      $if(\n        $(\"upload_file\").isExecuted,\n        $node[\"upload_file\"].json?.webViewLink ?? $node[\"upload_file\"].json?.data?.webViewLink ?? \"\",\n        \"\"\n      ),\n      \"\"\n    )\n  )\n)\n}}",
+              "type": "string"
+            },
+            {
+              "id": "189928a9-088d-413a-9e0e-811aafbab052",
+              "name": "phone",
+              "value": "={{ $node[\"data\"].json?.phone }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        -272
+      ],
+      "id": "af8adf48-84a5-4d96-a9f4-5e4ce993af6f",
+      "name": "message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ead98b67-d21c-48ef-bb05-82b2acae4d3d",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": -1,
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        -272
+      ],
+      "id": "e52d15a5-4ea9-4984-9a86-fcdd48010cd5",
+      "name": "verify_open_session"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH latest_per_job AS (\n    SELECT\n        job_posting_id,\n        tenant_name,\n        status,\n        context,\n        interaction,\n        ROW_NUMBER() OVER (\n            PARTITION BY job_posting_id\n            ORDER BY updated_at DESC\n        ) AS rn\n    FROM ats_chat_stage\n    WHERE candidate_phone_number_id = '{{ $node[\"data\"].json.phone }}'\n)\nSELECT\n    job_posting_id,\n    tenant_name,\n    status,\n    context\nFROM latest_per_job\nWHERE rn = 1\n  AND (interaction IS DISTINCT FROM 'finalizado');",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        752,
+        -272
+      ],
+      "id": "b4478c8d-42bf-4876-83a8-ae6a54681098",
+      "name": "get_session",
+      "credentials": {
+        "postgres": {
+          "id": "97jTGyCb4spQLkik",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cb490496-3b74-429c-a571-477b8abce76f",
+              "leftValue": "={{ $item(0).$node[\"get_session\"].json.status }}",
+              "rightValue": "em_andamento",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        -160
+      ],
+      "id": "863df5bf-9f19-4335-a4e1-c4d760736011",
+      "name": "verify_session_status"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $item(0).$node['data'].json.phone }}",
+        "messageText": "=Você está se inscrevendo na vaga {{ $item(0).$node['get_session'].json.job_posting_id }} da empresa {{ $item(0).$node['get_session'].json.tenant_name }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1488,
+        -176
+      ],
+      "id": "e3060d3e-b5ba-46be-a0f2-2e91216c6f6f",
+      "name": "Enviar texto1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9dbb98a9-a71f-44dc-891f-80a6c70b4d09",
+              "leftValue": "={{ $node[\"data\"].json.tenant_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8460f71b-8166-43a4-b7b3-5b7626932442",
+              "leftValue": "={{ $node[\"data\"].json.job_posting_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        -368
+      ],
+      "id": "07cb7b86-ca17-47c9-8332-229cc6ed0c12",
+      "name": "verify_job_data"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-buttons",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "title": "Deseja iniciar sua Inscrição?",
+        "description": "Ao clicar em Iniciar inscrição você está de acordo com os termos de políticas e privacidade",
+        "buttons": {
+          "buttonValues": [
+            {
+              "displayText": "Iniciar inscrição",
+              "id": "Iniciar_inscricao"
+            },
+            {
+              "displayText": "Cancelar",
+              "id": "cancelar_inscricao"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1488,
+        -528
+      ],
+      "id": "98168723-9615-4244-a395-191ceace1bfa",
+      "name": "Enviar bot es",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-buttons",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "title": "Deseja continuar sua Inscrição?",
+        "description": "Continuação da inscrição",
+        "buttons": {
+          "buttonValues": [
+            {
+              "displayText": "Continuar inscrição",
+              "id": "Iniciar_inscricao"
+            },
+            {
+              "displayText": "Cancelar",
+              "id": "cancelar_inscricao"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        -848
+      ],
+      "id": "115bdbd6-091e-4f7d-bc84-175b84926b96",
+      "name": "Enviar bot es1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "data": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "audio_converter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "document_converter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "audio_converter": {
+      "main": [
+        [
+          {
+            "node": "transcricao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "document_converter": {
+      "main": [
+        [
+          {
+            "node": "upload_file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transcricao": {
+      "main": [
+        [
+          {
+            "node": "message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "upload_file": {
+      "main": [
+        [
+          {
+            "node": "message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "message": {
+      "main": [
+        [
+          {
+            "node": "get_session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verify_open_session": {
+      "main": [
+        [
+          {
+            "node": "verify_job_data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "verify_session_status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_session": {
+      "main": [
+        [
+          {
+            "node": "verify_open_session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verify_session_status": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verify_job_data": {
+      "main": [
+        [
+          {
+            "node": "Enviar bot es",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar texto1": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d2557aba-dc14-490a-96c3-da35d4577377",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b0b4c619ab263b67c7a77c497d88902b415b826466c23f3574680205333638e"
+  },
+  "id": "EatYCMEHvmzU7pHx",
+  "tags": []
+}

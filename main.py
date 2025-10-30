@@ -28,9 +28,6 @@ def update_session():
         tenant_name = payload.get("tenant_name")
         status = payload.get("status")
 
-        if not all([candidate_message, system_message, interaction, chat_stage_id, tenant_name, status]):
-            return jsonify({"error": "Campos obrigatórios ausentes"}), 400
-
         now_iso = datetime.utcnow().isoformat() + "Z"
 
         # Busca os dados atuais (sem expor engine aqui)

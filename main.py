@@ -120,7 +120,7 @@ def add_application():
         # #salva as respostas
         # #save_answers(df_questions, recruitment_process_id, tenant_name)
 
-        return chat_id
+        return jsonify({"chat_id": chat_id}), 200
 
     except Exception as e:
         print("Erro interno:", e)

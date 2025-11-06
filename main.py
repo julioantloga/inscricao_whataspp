@@ -88,10 +88,9 @@ def add_application():
     try:
         data = request.get_json(force=True)   
         # Extrai o corpo principal
-        body = data["body"]
-
+        print (data)
         # Cria variáveis individuais
-        chat_id = body["ats_chat_stage_id"]
+        chat_id = data["ats_chat_stage_id"]
         # phone = body["phone"]
         # email = body["email"]
         # document = body["document"]

@@ -211,14 +211,14 @@ def save_answers(df_questions, recruitment_process_id: int, tenant_name: str):
 
     print("✅ Todas as respostas foram registradas com sucesso.")
 
-def get_chat_stage_by_id(chat_stage_id, tenant_name):
+def get_chat_stage_by_id(chat_stage_id):
     """
     Busca os dados atuais (conversation e context) da tabela ats_chat_stage.
     """
     with engine.begin() as conn:
         select_sql = text(f"""
-            SELECT conversation, context
-            FROM {tenant_name}.ats_chat_stage
+            SELECT *
+            FROM public.ats_chat_stage
             WHERE id = :chat_stage_id
         """)
         result = conn.execute(select_sql, {"chat_stage_id": chat_stage_id}).mappings().first()

@@ -86,24 +86,65 @@ def update_session():
 @app.route("/add_application", methods=["POST"])
 def add_application():
     try:
-        data = request.get_json(force=True)   
-        # Extrai o corpo principal
-        print (data)
-        # Cria variáveis individuais
+        data = request.get_json(force=True)
         chat_id = data["ats_chat_stage_id"]
-        # phone = body["phone"]
-        # email = body["email"]
-        # document = body["document"]
-        # tenant_name = body["tenant_name"]
-        # job_posting_id = body["job_posting_id"]
 
-        # # Inferir tipo de documento automaticamente
-        # if len(document.replace(".", "").replace("-", "")) == 11:
-        #     document_type = "CPF"
-        # elif len(document.replace(".", "").replace("-", "")) == 14:
-        #     document_type = "CNPJ"
-        # else:
-        #     document_type = "Outro"
+        # Busca o contexto da conversa
+        result = get_chat_stage_by_id(chat_id)
+        context = result["context"]
+
+        # Extrai a lista de perguntas
+        questions = context.get("steps", {}).get("questions", [])
+
+        # Inicializa variáveis
+        phone = email = document = None
+        customized_rows = []
+
+        for q in questions:
+            q_type = q.get("type")
+            q_key = q.get("key")
+            q_user_answer = q.get("user_answer")
+
+            # Campos individuais
+            if q_key == "phone" and q_type == "basic":
+                phone = q_user_answer
+            elif q_key == "email" and q_type == "basic":
+                email = q_user_answer
+            elif q_key == "document":
+                document = q_user_answer
+
+            # Dados para o dataframe
+            if q_type == "customized":
+                customized_rows.append({
+                    "id": q.get("id"),
+                    "name": q.get("name"),
+                    "key": q.get("key"),
+                    "answer_type": q.get("answer_type"),
+                    "user_answer": q.get("user_answer")
+                })
+
+        # Cria o DataFrame com perguntas personalizadas
+        questions_df = pd.DataFrame(customized_rows)
+
+        # Apenas para debug no log
+        print("Phone:", phone)
+        print("Email:", email)
+        print("Document:", document)
+        print("Customized Questions:\n", questions_df)
+
+        # Opcional: retornar dados como JSON
+        return jsonify({
+            "phone": phone,
+            "email": email,
+            "document": document,
+            "questions": questions_df.to_dict(orient="records")
+        }), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"erro": str(e)}), 500
+
 
         # # Cria o DataFrame com as perguntas
         # df_questions = pd.DataFrame(body["questions"])
@@ -119,12 +160,7 @@ def add_application():
 
         # #salva as respostas
         # #save_answers(df_questions, recruitment_process_id, tenant_name)
-
-        return jsonify({"chat_id": chat_id}), 200
-
-    except Exception as e:
-        print("Erro interno:", e)
-        return jsonify({"erro": str(e)}), 500
+        #return jsonify({"chat_id": chat_id}), 200
 
 # Executa localmente (Railway ignora essa parte no deploy)
 if __name__ == "__main__":

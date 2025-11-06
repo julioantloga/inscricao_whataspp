@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from service.application import create_candidate, create_candidate_phone, create_recruitment_process, get_chat_stage_by_id, update_chat_stage
+from service.application import create_candidate, create_candidate_phone, create_recruitment_process, get_chat_stage_by_id, update_chat_stage, save_answers
 import pandas as pd
 import json
 from datetime import datetime
@@ -92,15 +92,13 @@ def add_application():
         # Busca o contexto da conversa
         result = get_chat_stage_by_id(chat_id)
         context = result["context"]
-
-        # Extrai a lista de perguntas
-        print("Tipo de context:", type(context))
-        print("Valor de context:", context)
-
+        tenant_name = result["tenant_name"]
+        job_posting_id = result["job_posting_id"]
+        phone = result["candidate_phone_number_id"]
         questions = context[0].get("steps", {}).get("questions", [])
 
         # Inicializa variáveis
-        phone = email = document = None
+        name = phone = email = document = None
         customized_rows = []
 
         for q in questions:
@@ -109,8 +107,8 @@ def add_application():
             q_user_answer = q.get("user_answer")
 
             # Campos individuais
-            if q_key == "phone" and q_type == "basic":
-                phone = q_user_answer
+            if q_key == "name" and q_type == "basic":
+                name = q_user_answer
             elif q_key == "email" and q_type == "basic":
                 email = q_user_answer
             elif q_key == "document":
@@ -123,13 +121,29 @@ def add_application():
                     "name": q.get("name"),
                     "key": q.get("key"),
                     "answer_type": q.get("answer_type"),
-                    "user_answer": q.get("user_answer")
+                    "user_answer": q.get("user_answer"),
+                    "answer_options": q.get("answer_options", [])
                 })
+                
+        print(customized_rows)
 
         # Cria o DataFrame com perguntas personalizadas
         questions_df = pd.DataFrame(customized_rows)
 
+        #cria o candidato
+        candidate_id = create_candidate(tenant_name, name, email, document)
+
+        #cria telefone do candidato
+        create_candidate_phone(tenant_name, candidate_id, phone)
+
+        #registra a inscrição
+        recruitment_process_id = create_recruitment_process(tenant_name, candidate_id, job_posting_id)
+
+        #salva as respostas
+        save_answers(questions_df, recruitment_process_id, tenant_name)
+
         # Apenas para debug no log
+        print("Name:", name)
         print("Phone:", phone)
         print("Email:", email)
         print("Document:", document)
@@ -137,6 +151,7 @@ def add_application():
 
         # Opcional: retornar dados como JSON
         return jsonify({
+            "nome": name,
             "phone": phone,
             "email": email,
             "document": document,

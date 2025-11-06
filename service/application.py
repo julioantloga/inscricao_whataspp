@@ -155,7 +155,7 @@ def save_answers(df_questions, recruitment_process_id: int, tenant_name: str):
     with engine.begin() as conn:
         for _, row in df_questions.iterrows():
             question_id = int(row["id"])
-            answer = row["answer"]
+            answer = row["user_answer"]
             answer_type = row["answer_type"]
             answer_options = row.get("answer_options", [])
 
@@ -178,9 +178,9 @@ def save_answers(df_questions, recruitment_process_id: int, tenant_name: str):
                 )
 
             # 🧾 Caso 2: resposta do tipo múltipla escolha (options)
-            elif answer_type == "options":
+            elif answer_type == "text/number":
                 # Busca o ID da opção que corresponde à resposta
-                matched_option_id = None
+                matched_option_id = 0
                 if isinstance(answer_options, list):
                     for opt in answer_options:
                         if str(opt.get("desc") or opt.get("option_name")).strip().lower() == str(answer).strip().lower():
@@ -188,8 +188,7 @@ def save_answers(df_questions, recruitment_process_id: int, tenant_name: str):
                             break
 
                 if matched_option_id is None:
-                    print(f"⚠️ Nenhuma opção correspondente encontrada para a pergunta {question_id}: {answer}")
-                    continue
+                    matched_option_id = 0
 
                 sql = text(f"""
                     INSERT INTO {tenant_name}.ats_answeralternative
@@ -203,7 +202,7 @@ def save_answers(df_questions, recruitment_process_id: int, tenant_name: str):
                         "updated_at": now,
                         "question_alternative_id": matched_option_id,
                         "recruitment_process_id": recruitment_process_id,
-                    },
+                    }
                 )
 
             else:

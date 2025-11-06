@@ -94,6 +94,12 @@ def add_application():
         context = result["context"]
 
         # Extrai a lista de perguntas
+        print("Tipo de context:", type(context))
+        print("Valor de context:", context)
+        
+        if isinstance(context, str):
+            context = json.loads(context)
+
         questions = context.get("steps", {}).get("questions", [])
 
         # Inicializa variáveis

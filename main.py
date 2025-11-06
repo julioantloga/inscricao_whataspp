@@ -98,7 +98,7 @@ def add_application():
         questions = context[0].get("steps", {}).get("questions", [])
 
         # Inicializa variáveis
-        name = phone = cpf = email = document = None
+        name = cpf = email = document = None
         customized_rows = []
 
         for q in questions:
@@ -129,6 +129,13 @@ def add_application():
                 
         print(customized_rows)
 
+        # Apenas para debug no log
+        print("Name:", name)
+        print("Phone:", phone)
+        print("Cpf:", cpf)
+        print("Email:", email)
+        print("Document:", document)
+
         # Cria o DataFrame com perguntas personalizadas
         questions_df = pd.DataFrame(customized_rows)
 
@@ -143,13 +150,6 @@ def add_application():
 
         #salva as respostas
         save_answers(questions_df, recruitment_process_id, tenant_name)
-
-        # Apenas para debug no log
-        print("Name:", name)
-        print("Phone:", phone)
-        print("Email:", email)
-        print("Document:", document)
-        print("Customized Questions:\n", questions_df)
 
         # Opcional: retornar dados como JSON
         return jsonify({

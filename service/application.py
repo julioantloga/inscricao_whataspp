@@ -40,19 +40,9 @@ def create_candidate_phone(tenant_name: str, candidate_id: int, phone: str):
     Cadastra o telefone do candidato na tabela ats_candidatephonecontact.
     Campos obrigatórios: number, type, country_code, candidate_id, timestamps.
     """
-
-    # Normaliza o telefone
-    phone = phone.strip().replace(" ", "")
-    
-    # Extrai o código do país (ex: 55 do +55)
     # Caso não tenha código, define 55 como padrão (Brasil)
     country_code = 55
-    if phone.startswith("+"):
-        country_code = int(phone[1:3])
-        phone = phone[3:]
-    elif phone.startswith("55"):
-        country_code = 55
-        phone = phone[2:]
+
 
     # Define tipo padrão (ex: mobile)
     phone_type = "mobile"
@@ -175,7 +165,7 @@ def save_answers(df_questions, recruitment_process_id: int, tenant_name: str):
                 )
 
             # 🧾 Caso 2: resposta do tipo múltipla escolha (options)
-            elif answer_type == "text/number":
+            elif answer_type == "options":
                 # Busca o ID da opção que corresponde à resposta
                 matched_option_id = 0
                 if isinstance(answer_options, list):

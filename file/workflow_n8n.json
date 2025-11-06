@@ -242,11 +242,16 @@ SET question_sequence = '{
   "steps": {
     "total_questions": 4,
     "questions": [
-      { "id": 1, "name":"Nome completo", "type": "default", "sequence": 1, "answer_type": "text", "answer_options":[]},
-      { "id": 2, "name":"Email", "type": "default", "sequence": 2, "answer_type": "text", "answer_options":[]},
-      { "id": 15, "name":"CPF", "type": "default", "sequence": 3, "answer_type": "text", "answer_options":[]},
-      { "id": 1, "name":"Descreva sua experiência com frameworks como React ou Django.", "type": "customized", "sequence": 1, "answer_type": "text", "answer_options":[]},
-      { "id": 2, "name":"Descreva sua experiência com frameworks como React ou Django.", "type": "customized", "sequence": 1, "answer_type": "text", "answer_options":[]},
+      { "id": 1, "name":"Nome completo", 
+        "type": "default", "sequence": 1, "answer_type": "text", "answer_options":[]},
+      { "id": 2, "name":"Email", 
+        "type": "default", "sequence": 2, "answer_type": "text", "answer_options":[]},
+      { "id": 15, "name":"CPF", 
+        "type": "default", "sequence": 3, "answer_type": "text", "answer_options":[]},
+      { "id": 1, "name":"Descreva sua experiência com frameworks como React ou Django.", 
+        "type": "customized", "sequence": 1, "answer_type": "text", "answer_options":[]},
+      { "id": 2, "name":"Descreva sua experiência com frameworks como React ou Django.", 
+        "type": "customized", "sequence": 1, "answer_type": "text", "answer_options":[]},
     ]
   }
 }'::jsonb
@@ -306,3 +311,64 @@ WHERE id = 1;
 ]
 
 body.entry[0].chenges[0].value.messages[0].type = "document"
+
+
+{"steps":
+  {"questions": [
+    {
+      "id": null,
+      "name": "Qual o seu nome completo?", 
+      "type": "basic", 
+      "sequence": 1, 
+      "answer_type": "text", 
+      "answer_options": []
+    },
+    {
+      "id": null,
+      "name": "Qual o seu email?", 
+      "type": "basic", 
+      "sequence": 2, 
+      "answer_type": "text", 
+      "answer_options": []
+    },
+    {
+      "id": null,
+      "name": "Por favor digite seu CPF (somente os números, sem pontos e traços):", 
+      "type": "basic", 
+      "sequence": 3, 
+      "answer_type": "text", 
+      "answer_options": []
+    },
+    {
+      "id": 1,
+      "name": "Descreva sua experiência com frameworks como React ou Django.", 
+      "type": "customized", 
+      "sequence": 4, 
+      "answer_type": "text", 
+      "answer_options": []
+    },
+    {
+      "id": 2,
+      "name": "Por que deseja trabalhar conosco?", 
+      "type": "customized", 
+      "sequence": 5, 
+      "answer_type": "text", 
+      "answer_options": []
+    },
+    {
+      "id": null,
+      "name": "como ficou sabendo da vaga?", 
+      "type": "basic", 
+      "sequence": 6, 
+      "answer_type": "source", 
+      "answer_options": [
+        {"option_id":1,"option":"Site da empresa"},
+        {"option_id":2,"option":"LinkedIn"},
+        {"option_id":3,"option":"Indicação de funcionário"},
+        {"option_id":4,"option":"Vagas.com"},
+        {"option_id":5,"option":"InfoJobs"},
+        {"option_id":6,"option":"Indeed"}
+      ]
+    }
+    ],
+    "total_questions": 6}}

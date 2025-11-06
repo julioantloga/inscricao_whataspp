@@ -86,42 +86,44 @@ def update_session():
 @app.route("/add_application", methods=["POST"])
 def add_application():
     try:
+        
         data = request.get_json(force=True)   
         # Extrai o corpo principal
-        body = data["output"]["body"]
+        chat_id = data["ats_chat_stage_id"]
+        #get_chat_stage_by_id (chat_id)
 
-        # Cria variáveis individuais
-        name = body["name"]
-        phone = body["phone"]
-        email = body["email"]
-        document = body["document"]
-        tenant_name = body["tenant_name"]
-        job_posting_id = body["job_posting_id"]
+        # # Cria variáveis individuais
+        # name = body["name"]
+        # phone = body["phone"]
+        # email = body["email"]
+        # document = body["document"]
+        # tenant_name = body["tenant_name"]
+        # job_posting_id = body["job_posting_id"]
 
-        # Inferir tipo de documento automaticamente
-        if len(document.replace(".", "").replace("-", "")) == 11:
-            document_type = "CPF"
-        elif len(document.replace(".", "").replace("-", "")) == 14:
-            document_type = "CNPJ"
-        else:
-            document_type = "Outro"
+        # # Inferir tipo de documento automaticamente
+        # if len(document.replace(".", "").replace("-", "")) == 11:
+        #     document_type = "CPF"
+        # elif len(document.replace(".", "").replace("-", "")) == 14:
+        #     document_type = "CNPJ"
+        # else:
+        #     document_type = "Outro"
 
-        # Cria o DataFrame com as perguntas
-        df_questions = pd.DataFrame(body["questions"])
+        # # Cria o DataFrame com as perguntas
+        # df_questions = pd.DataFrame(body["questions"])
 
-        #cria o candidato
-        candidate_id = create_candidate(tenant_name,name,email,document)
+        # #cria o candidato
+        # candidate_id = create_candidate(tenant_name,name,email,document)
 
-        #cria telefone do candidato
-        create_candidate_phone(tenant_name, candidate_id, phone)
+        # #cria telefone do candidato
+        # create_candidate_phone(tenant_name, candidate_id, phone)
 
-        #registra a inscrição
-        recruitment_process_id = create_recruitment_process(tenant_name, candidate_id, job_posting_id)
+        # #registra a inscrição
+        # recruitment_process_id = create_recruitment_process(tenant_name, candidate_id, job_posting_id)
 
-        #salva as respostas
-        #save_answers(df_questions, recruitment_process_id, tenant_name)
+        # #salva as respostas
+        # #save_answers(df_questions, recruitment_process_id, tenant_name)
 
-        return data
+        return chat_id
 
     except Exception as e:
         print("Erro interno:", e)

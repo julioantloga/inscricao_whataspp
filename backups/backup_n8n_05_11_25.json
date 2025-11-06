@@ -1,0 +1,2297 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        -80
+      ],
+      "id": "1b522c33-fd40-49aa-9948-9f05dab8969c",
+      "name": "Webhook",
+      "webhookId": "2164cb34-4fa0-4782-b88b-c9fed5a1cfb4"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message_type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "48872861-8026-4aff-a6ee-9a64448ae934"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "id text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5dbe065d-dcc8-4052-849c-acacd6f402f4",
+                    "leftValue": "={{ $json.message_type }}",
+                    "rightValue": "audio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "if audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8b753b65-b8f6-4021-9eaa-932a8a3ad71b",
+                    "leftValue": "={{ $json.message_type }}",
+                    "rightValue": "document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "if document"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -336,
+        -96
+      ],
+      "id": "81efffd2-ba58-4b5d-846c-9238f0c2e1be",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Parser universal para mensagens do Evolution API (WhatsApp)\n * Suporta: texto, áudio e documento\n * Detecta automaticamente o tipo de mensagem\n */\n\nconst body = $json?.body || {};\nconst event = body?.event || null;\n\nif (body?.data?.key?.fromMe === true) {\n  return []; // Para execução\n}\n\n// --- Extrai remetente ---\nconst remoteJid =\n  body?.data?.key?.remoteJid ||\n  body?.data?.remoteJid ||\n  body?.sender ||\n  null;\n\nconst phone = remoteJid ? remoteJid.replace(\"@s.whatsapp.net\", \"\") : null;\n\n// --- Extrai informações da mensagem ---\nconst message = body?.data?.message || {};\nconst messageType = body?.data?.messageType || \"unknown\";\n\nlet type = messageType;\nlet content = null;\nlet job_posting_id = null;\nlet tenant_name = null;\n\n// --- Verifica e extrai o conteúdo principal ---\nswitch (messageType) {\n  case \"conversation\":\n  case \"text\":\n    type = \"text\";\n    content = message?.conversation ?? message?.text?.body ?? null;\n    //Verifica se o texto tem a vaga\n    if (content) {\n      const regex = /@VAGA(\\d+)-([A-Za-z0-9_-]+)/i;\n      const match = content.match(regex);\n      if (match) {\n        job_posting_id = match[1];\n        tenant_name = match[2];\n      }\n    }\n    break;\n\n  case \"audioMessage\":\n  case \"audio\":\n    type = \"audio\";\n    content = message?.audioMessage?.url ?? message?.audioMessage?.id ?? null;\n    break;\n\n  case \"documentMessage\":\n  case \"document\":\n    type = \"document\";\n    content = {\n      file_name: message?.documentMessage?.fileName ?? null,\n      mime_type: message?.documentMessage?.mimetype ?? null,\n      url: message?.documentMessage?.url ?? null,\n      file_size: message?.documentMessage?.fileLength ?? null,\n    };\n    break;\n\n  default:\n    type = \"unknown\";\n    content = null;\n    break;\n}\n\n// --- Retorno padronizado ---\nreturn [\n  {\n    json: {\n      event,\n      phone,\n      job_posting_id,\n      tenant_name,\n      raw_remoteJid: remoteJid,\n      message_type: type,\n      message_content: content,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -512,
+        -80
+      ],
+      "id": "0d8dd787-b731-4ee9-bb15-816f5cb14137",
+      "name": "data"
+    },
+    {
+      "parameters": {
+        "url": "={{ $node[\"Webhook\"].json[\"body\"][\"server_url\"] }}/media/{{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"key\"][\"id\"] }}?instance={{ $node[\"Webhook\"].json[\"body\"][\"instance\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node[\"Webhook\"].json[\"body\"][\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -416,
+        -1472
+      ],
+      "id": "c09df3e1-a1fc-45fb-8fbb-de27127eab8e",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Converte o áudio em Base64 (vindo do Webhook) em binário\n * para uso no nó \"OpenAI - Transcribe a recording\"\n * Funciona mesmo que o nó Webhook esteja distante na execução.\n */\n\n// Puxa os dados diretamente do nó \"Webhook\"\nconst webhookData = $node[\"Webhook\"].json?.body?.data;\n\n// Extrai o base64 do áudio\nconst base64Audio = webhookData?.message?.base64;\n\nif (!base64Audio) {\n  throw new Error(\"Nenhum áudio em base64 foi encontrado no nó 'Webhook'.\");\n}\n\n// Extrai o número do remetente\nconst remoteJid = webhookData?.key?.remoteJid;\nconst phone = remoteJid ? remoteJid.replace(\"@s.whatsapp.net\", \"\") : null;\n\n// Retorna o binário pronto para o Whisper\nreturn [\n  {\n    json: {\n      phone,\n    },\n    binary: {\n      audio: {\n        data: Buffer.from(base64Audio, \"base64\"),\n        mimeType: \"audio/ogg\",\n        fileName: \"whatsapp-audio.ogg\",\n      },\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        16
+      ],
+      "id": "6aebcbdf-7035-46ac-9eef-616024d337da",
+      "name": "audio_converter"
+    },
+    {
+      "parameters": {
+        "jsCode": "const doc = $node[\"Webhook\"].json.body?.data?.message;\n\nif (!doc?.base64) {\n  throw new Error(\"Documento sem conteúdo base64 detectado!\");\n}\n\nreturn [\n  {\n    json: {\n      fileName: doc.fileName,\n      mimeType: doc.mimetype,\n    },\n    binary: {\n      document: {\n        data: Buffer.from(doc.base64, 'base64'),\n        mimeType: doc.mimetype,\n        fileName: doc.fileName || 'arquivo.pdf',\n      },\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        208
+      ],
+      "id": "fef001cc-9dd1-4b51-a3a8-f8c5a0c5ecb1",
+      "name": "document_converter"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Você é um assistente de mensagens e precisa avaliar a conversa entre o candidato e a empresa para a sua inscrição.\n\nVocê deve:\n- Identificar em que momento da inscrição o candidato está a partir do status da session\n\n- Se o status for 'inicializar', entender se o candidato deseja ou não iniciar a inscrição. Se sim, enviar a primeira pergunta presente no json context, que contém as questões que o candidato deve responder. Se não, responder que a inscrição foi cancelada.\n\n- Se o status for \"em andamento\" identificar qual pergunta o candidato está respondendo usando o Json Questões para inscrição e Histórico da conversa\n\nAssim que tiver um output definido, execute a ferramenta \"update_session\" para atualizar os dados da sessão.\n\n#Output\nRetorne um Json com os seguintes dados\n{\n  \"candidate_message\": <mensagem enviada pelo candidato>,\n  \"system_message\": <o deseja enviar para o candidato>,\n  \"interaction\": <\"question\" ou \"answer\">,\n  \"chat_stage_id\": <id da sessão>,\n  \"tenant_name\": \"empresa_xyz\",\n  \"status\": <status identificado da sessao>\n}\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=#Mensagem do candidato:\n{{ $node[\"message\"].json.output }}\n\n#Dados da sessão:\nchat_stage_id: {{ $node[\"get_session\"].json.id }}\ntenant: {{ $node[\"get_session\"].json.tenant_name }}\nstatus: {{ $node[\"get_session\"].json.status }}\n\n#Questões para inscrição:\n{{ JSON.stringify($node[\"get_session\"].json.context) }}\n\n#Histórico da conversa:\n{{ JSON.stringify($node[\"get_session\"].json.conversation) }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1872,
+        320
+      ],
+      "id": "a7a9c7e1-3115-49f1-8839-29a74b52ae62",
+      "name": "AI Agent",
+      "notes": "Você é um assistente de mensagens e precisa avaliar a conversa entre o candidato e a empresa para a sua inscrição.\n\nVocê deve:\n- Atualizar o Json da conversa utilizando a tool 'update_session_conversation'\n\n- Identificar em que momento da inscrição o candidato está a partir do status da session\n\n- Se o status for 'inicializar', entender se o candidato deseja ou não iniciar a inscrição. Se sim, enviar a primeira pergunta presente no json context, que contém as questões que o candidato deve responder. Se não, utilizar a tool delete_session para remover a sessão do usuário\n\n- Se o status for \"em andamento\" identificar qual pergunta o candidato está respondendo e utilizar a tool update_session_context para atualizar a resposta da pergunta.\n\nO output deve ser:\nmessage: <mensagem do candidato>\nquestion: <id da questão em caso de resposta>\n"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1872,
+        512
+      ],
+      "id": "638c975c-b973-4b2d-9fb7-7759cad23565",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "wjVVa1OwzrlzaMG5",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryPropertyName": "audio",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        160,
+        16
+      ],
+      "id": "7c599b63-cf5b-49e5-84b3-d1ae1cc29833",
+      "name": "transcricao",
+      "credentials": {
+        "openAiApi": {
+          "id": "wjVVa1OwzrlzaMG5",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "document",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "root",
+          "mode": "list",
+          "cachedResultName": "/ (Root folder)",
+          "cachedResultUrl": "https://drive.google.com/drive"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        160,
+        208
+      ],
+      "id": "14e0474a-27c4-4113-9132-7bf894041ca4",
+      "name": "upload_file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "64Qzp8RKi4OH1zrO",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "92a6a877-7058-462e-9176-dbdec8867e10",
+              "name": "output",
+              "value": "={{\n$if(\n  ($node[\"data\"].json.message_type ?? $node[\"Webhook\"].json.body?.data?.messageType) === \"text\",\n  $node[\"data\"].json?.message_content ?? \"\",\n  $if(\n    ($node[\"data\"].json.message_type ?? $node[\"Webhook\"].json.body?.data?.messageType) === \"audio\" || \n    ($node[\"data\"].json.message_type ?? $node[\"Webhook\"].json.body?.data?.messageType) === \"audioMessage\",\n    $if(\n      $(\"transcricao\").isExecuted,\n      $node[\"transcricao\"].json?.text ?? $node[\"transcricao\"].json?.data?.text ?? \"\",\n      \"\"\n    ),\n    $if(\n      ($node[\"data\"].json.message_type ?? $node[\"Webhook\"].json.body?.data?.messageType) === \"document\" || \n      ($node[\"data\"].json.message_type ?? $node[\"Webhook\"].json.body?.data?.messageType) === \"documentMessage\",\n      $if(\n        $(\"upload_file\").isExecuted,\n        $node[\"upload_file\"].json?.webViewLink ?? $node[\"upload_file\"].json?.data?.webViewLink ?? \"\",\n        \"\"\n      ),\n      \"\"\n    )\n  )\n)\n}}",
+              "type": "string"
+            },
+            {
+              "id": "189928a9-088d-413a-9e0e-811aafbab052",
+              "name": "phone",
+              "value": "={{ $node[\"data\"].json?.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "97b51a33-c711-4787-ace7-af6301ccc288",
+              "name": "message_type",
+              "value": "={{ $node[\"Webhook\"].json.body?.data?.messageType }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        -112
+      ],
+      "id": "af8adf48-84a5-4d96-a9f4-5e4ce993af6f",
+      "name": "message"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH latest_per_job AS (\n    SELECT\n        id,\n        job_posting_id,\n        tenant_name,\n        status,\n        step,\n        context,\n        conversation,\n        interaction,\n        ROW_NUMBER() OVER (\n            PARTITION BY job_posting_id\n            ORDER BY updated_at DESC\n        ) AS rn\n    FROM ats_chat_stage\n    WHERE candidate_phone_number_id = '{{ $node[\"data\"].json.phone }}'\n)\nSELECT\n    id,\n    job_posting_id,\n    tenant_name,\n    status,\n    step,\n    conversation,\n    context,\n    interaction\nFROM latest_per_job\nWHERE rn = 1\n  AND (interaction IS DISTINCT FROM 'finalizado');",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        640,
+        -112
+      ],
+      "id": "b4478c8d-42bf-4876-83a8-ae6a54681098",
+      "name": "get_session",
+      "credentials": {
+        "postgres": {
+          "id": "97jTGyCb4spQLkik",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cb490496-3b74-429c-a571-477b8abce76f",
+              "leftValue": "={{ $item(0).$node[\"get_session\"].json.status }}",
+              "rightValue": "em_andamento",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -144,
+        -1472
+      ],
+      "id": "863df5bf-9f19-4335-a4e1-c4d760736011",
+      "name": "verify_session_status"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $item(0).$node['data'].json.phone }}",
+        "messageText": "=Você está se inscrevendo na vaga {{ $item(0).$node['get_session'].json.job_posting_id }} da empresa {{ $item(0).$node['get_session'].json.tenant_name }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        128,
+        -1488
+      ],
+      "id": "e3060d3e-b5ba-46be-a0f2-2e91216c6f6f",
+      "name": "Enviar texto1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9dbb98a9-a71f-44dc-891f-80a6c70b4d09",
+              "leftValue": "={{ $node[\"data\"].json.tenant_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8460f71b-8166-43a4-b7b3-5b7626932442",
+              "leftValue": "={{ $node[\"data\"].json.job_posting_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        -864
+      ],
+      "id": "07cb7b86-ca17-47c9-8332-229cc6ed0c12",
+      "name": "verify_job_data"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.ats_chat_stage (\n  candidate_phone_number_id,\n  job_posting_id,\n  tenant_name,\n  step,\n  status,\n  interaction,\n  updated_at,\n  context,\n  conversation\n)\nVALUES (\n  '{{ $node[\"data\"].json.phone }}',\n  CAST({{ $node[\"data\"].json.job_posting_id || 0 }} AS integer),\n  '{{ $node[\"data\"].json.tenant_name }}',\n  0,\n  'inicializar',\n  NULL,\n  now(),\n  '[ \n  {{ JSON.stringify($node[\"get_job\"].json.question_sequence) }} \n  ]'::jsonb,\n  '[\n    {\"date\":\"{{ new Date().toISOString() }}\", \"from\":\"candidate\", \"message\": \"{{ $node['message'].json.output }}\" }\n  ]'::jsonb\n);\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2224,
+        -960
+      ],
+      "id": "67479a46-1a08-4e78-9a6b-612c4d5b4c03",
+      "name": "create_session",
+      "credentials": {
+        "postgres": {
+          "id": "97jTGyCb4spQLkik",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nSELECT * FROM {{ $node['data'].json.tenant_name }}.ats_jobposting WHERE id = {{ $node['data'].json.job_posting_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1824,
+        -960
+      ],
+      "id": "b3cc0cca-de73-44f8-a61f-feb871420f7a",
+      "name": "get_job",
+      "credentials": {
+        "postgres": {
+          "id": "97jTGyCb4spQLkik",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $node['get_session'].json.status }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notExists",
+                      "singleValue": true
+                    },
+                    "id": "c5d3fc8e-a9dc-4a09-b13b-0e59c4042321"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "no session"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "fe9cf46d-a1d1-474d-8134-e45bf3b72314",
+                    "leftValue": "={{ $node['get_session'].json.status }}",
+                    "rightValue": "inicializar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "start"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4ebca52f-6e9f-4984-8206-981a45f3335e",
+                    "leftValue": "={{ $node['get_session'].json.status }}",
+                    "rightValue": "em_andamento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "in progress"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3d14808e-8a8f-42af-9c89-7c2791f63b39",
+                    "leftValue": "={{ $node['get_session'].json.status }}",
+                    "rightValue": "finalizada",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "finish"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        848,
+        -128
+      ],
+      "id": "5b5067f9-93de-49f2-a08c-e3a78b63f497",
+      "name": "check_session"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "Você não tem nenhuma inscrição iniciada, por favor, informe corretamente o código da vaga que deseja se inscrever.",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1824,
+        -736
+      ],
+      "id": "3619227a-ca60-455e-999b-0cbf7a5b59aa",
+      "name": "msg_no_job_founded",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://inscricaowhataspp-production.up.railway.app/update_session",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n{{ JSON.stringfy($node['AI Agent'].json.output) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2224,
+        320
+      ],
+      "id": "df92d43b-7c48-4375-971b-34fb567ee8e6",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "={{ $node['AI Agent'].json.output.system_message }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2448,
+        320
+      ],
+      "id": "265731be-6bf3-4078-99ae-d7d856eb7942",
+      "name": "msg_no_job_founded2",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"candidate_message\": \"\",\n  \"system_message\": \"\",\n  \"interaction\": \"\",\n  \"chat_stage_id\": \"\",\n  \"tenant_name\": \"\",\n  \"status\": \"\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2016,
+        576
+      ],
+      "id": "2bcb884f-2df4-42c2-84d3-4ee135444a0a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1824,
+        80
+      ],
+      "id": "c6b392c7-70d2-4469-8c3d-b0a7a630d9c9",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "wjVVa1OwzrlzaMG5",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Seu objetivo é identifique se o candidato de um processo selectivo deseja ou não iniciar o seu processo seletivo.\nRegras:\nResponda somente \"sim\" ou \"não\"\nSe a resposta não tiver clara, o output deve ser \"neutro\".",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=#Mensagem do candidato:\n{{ $node[\"message\"].json.output }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1824,
+        -128
+      ],
+      "id": "475cf0a9-2b1e-47b3-9738-53792bdae3eb",
+      "name": "AI_start",
+      "notes": "Você é um assistente de mensagens e precisa avaliar a conversa entre o candidato e a empresa para a sua inscrição.\n\nVocê deve:\n- Atualizar o Json da conversa utilizando a tool 'update_session_conversation'\n\n- Identificar em que momento da inscrição o candidato está a partir do status da session\n\n- Se o status for 'inicializar', entender se o candidato deseja ou não iniciar a inscrição. Se sim, enviar a primeira pergunta presente no json context, que contém as questões que o candidato deve responder. Se não, utilizar a tool delete_session para remover a sessão do usuário\n\n- Se o status for \"em andamento\" identificar qual pergunta o candidato está respondendo e utilizar a tool update_session_context para atualizar a resposta da pergunta.\n\nO output deve ser:\nmessage: <mensagem do candidato>\nquestion: <id da questão em caso de resposta>\n"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cebf93bc-1442-40ff-a23c-a0fb61c4d521",
+              "leftValue": "={{ $node['get_session'].json.status }}",
+              "rightValue": "inicializar",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        -112
+      ],
+      "id": "16ef2657-dfe4-484d-80db-419e8e017f33",
+      "name": "is_start_msg"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $node['AI_start'].json.output }}",
+                    "rightValue": "sim",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c5d3fc8e-a9dc-4a09-b13b-0e59c4042321"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sim"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "fe9cf46d-a1d1-474d-8134-e45bf3b72314",
+                    "leftValue": "={{ $node['AI_start'].json.output }}",
+                    "rightValue": "não",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "nao"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0114951f-0db7-406e-b348-3be4dc5f825c",
+                    "leftValue": "={{ $node['AI_start'].json.output }}",
+                    "rightValue": "neutro",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "neutro"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        2208,
+        -144
+      ],
+      "id": "93435a0b-475b-43a0-8862-4b1ea1693948",
+      "name": "check_start_comand"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "=Deseja iniciar sua inscrição na Vaga {{ $node['get_job'].json.name }} da empresa {{ $node['data'].json.tenant_name }}?",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        -960
+      ],
+      "id": "ee08022d-13d3-40f4-ac8e-73f31ee05b02",
+      "name": "msg_start_command",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "=Desculpe, não entendi.\nIdentificamos o seu interesse em se inscrever na Vaga {{ $node['get_job_neutro'].json.name }} da empresa {{ $node['data'].json.tenant_name }}, deseja iniciar sua inscrição?",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2768,
+        80
+      ],
+      "id": "6448ee2f-300c-4759-8306-d3b0b0e73007",
+      "name": "msg_start_neutra",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "=Ok, sua inscrição foi descontinuada!\nPara se inscrever em uma vaga basta enviar pra gente o código dela por aqui :)",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2768,
+        -112
+      ],
+      "id": "af4a2ce2-a054-421f-916e-c5a53332037f",
+      "name": "msg_start_denied",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.ats_chat_stage \n  WHERE \n    id = {{ $node[\"get_session\"].json.id }}\n  ;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2544,
+        -112
+      ],
+      "id": "7a46b55b-1c12-4b6f-8edd-cf8917a26d25",
+      "name": "delete_start_session",
+      "credentials": {
+        "postgres": {
+          "id": "97jTGyCb4spQLkik",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tenta pegar o step do campo correto\nconst step = $node[\"get_session\"].json.step;\n\n// Tenta pegar o JSON completo da sessão\nconst session = $node[\"get_session\"].json;\n\n\n// Acessa as questões dentro de context > steps > questions\nconst questions = session.context?.[0]?.steps?.questions || [];\n\n\n// Obtém a questão atual com base no step\nconst currentQuestion = questions[step];\n\n// Retorna no formato desejado\nreturn [\n  {\n    json: {\n      question: currentQuestion\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2544,
+        -304
+      ],
+      "id": "3ad7b860-af6f-4141-bd73-2f7655ccad83",
+      "name": "get_first_question"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "=Perfeito, vamos iniciar sua inscrição!\n\n{{ $node['get_first_question'].json.question.name }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        3200,
+        -304
+      ],
+      "id": "6198f245-c473-4a1e-9c32-723ad0995c68",
+      "name": "msg_start_denied1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.ats_chat_stage\nSET \n  status = 'em_andamento',\n  conversation = '{{ JSON.stringify($node[\"update_first_conversation\"].json.conversation) }}'::json\nWHERE \n  id = {{ $node[\"get_session\"].json.id }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2992,
+        -304
+      ],
+      "id": "76699932-344c-49da-a306-e2885968f63f",
+      "name": "update_first_question",
+      "credentials": {
+        "postgres": {
+          "id": "97jTGyCb4spQLkik",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔹 Obtém o histórico atual da conversa\nconst previousConversation = $node[\"get_session\"].json.conversation || [];\n\n// 🔹 Obtém a mensagem mais recente do usuário (vinda do nó \"message\")\nconst userMessage = $node[\"message\"].json.output;\n\n// 🔹 Obtém a questão atual (vinda do nó \"get_first_question\")\nconst question = $node[\"get_first_question\"].json.question;\n\n// 🔹 Função para formatar data/hora no padrão \"AAAA-MM-DD hh:mm:ss\"\nfunction getCurrentDateTime() {\n  const now = new Date();\n  const pad = (n) => n.toString().padStart(2, \"0\");\n  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;\n}\n\n// 🔹 Cria o registro da mensagem do usuário\nconst userEntry = {\n  date: getCurrentDateTime(),\n  from: \"candidate\",\n  message: userMessage\n};\n\n// 🔹 Cria o registro da mensagem do sistema (a questão)\nconst systemEntry = {\n  date: getCurrentDateTime(),\n  from: \"system\",\n  message: question?.name || \"Pergunta não encontrada\"\n};\n\n// 🔹 Atualiza o histórico adicionando as duas novas mensagens\nconst updatedConversation = [...previousConversation, userEntry, systemEntry];\n\n// 🔹 Retorna o novo histórico no formato esperado pelo n8n\nreturn [\n  {\n    json: {\n      conversation: updatedConversation\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2768,
+        -304
+      ],
+      "id": "1da7f6d8-1b6c-4b70-909c-786c1242ac1f",
+      "name": "update_first_conversation"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM {{ $node['get_session'].json.tenant_name }}.ats_jobposting WHERE id = {{ $node['get_session'].json.job_posting_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2544,
+        80
+      ],
+      "id": "2305e8d1-4d04-4794-8d96-a88fb01bafa7",
+      "name": "get_job_neutro",
+      "credentials": {
+        "postgres": {
+          "id": "97jTGyCb4spQLkik",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2416,
+        1216
+      ],
+      "id": "ae94e73e-a745-40ed-a04a-781352ff914a",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "wjVVa1OwzrlzaMG5",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## First question",
+        "height": 1152,
+        "width": 1984
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1504,
+        -384
+      ],
+      "typeVersion": 1,
+      "id": "49f03fab-16f3-4a14-a17e-988669e01871",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## First contact - create session",
+        "height": 624,
+        "width": 960,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1504,
+        -1072
+      ],
+      "typeVersion": 1,
+      "id": "07c22bd6-02bb-4062-83f5-aa123137e0fb",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## application proccess",
+        "height": 688,
+        "width": 3312,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1504,
+        832
+      ],
+      "typeVersion": 1,
+      "id": "e786b523-a19a-49bf-ac27-d78a3b177a19",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "#Objetivo\nSeu objetivo é avaliar se o que o candidato enviou uma resposta válida para a pergunta feita a ele.\n\n#Regras:\n- Aceite respostas razas e superficiais, veja somente se a resposta é válida ou não.\n- Responda com duas informações no formato json: \n\"analise\": \"valida\" se a resposta for aceita ou \"invalida\" se não resposta não for aceita.\n\"devolutiva\": se analise for \"invalida\" gerar um exemplo de como o candidato pode responder a pergunta, se analise for \"valida\" enviar a devolutiva vazia.\n- Seja simpático ao criar a devolutiva.\n\n\nExemplo de output:\n[{\n\"analise\":\"valida\",\n\"devolutiva\": \"\"\n}]\n\n[{\n\"analise\":\"invalida\",\n\"devolutiva\": \"dica\"\n}]",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=#Pergunta feita:\n{{ $node[\"get_answered_question\"].json.question.name }}\n\n#Resposta do candidato:\n{{ $node[\"message\"].json.output }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2416,
+        1008
+      ],
+      "id": "53a15e0f-cda3-46e9-8c5d-abf0f5932300",
+      "name": "AI_answer",
+      "notes": "Você é um assistente de mensagens e precisa avaliar a conversa entre o candidato e a empresa para a sua inscrição.\n\nVocê deve:\n- Atualizar o Json da conversa utilizando a tool 'update_session_conversation'\n\n- Identificar em que momento da inscrição o candidato está a partir do status da session\n\n- Se o status for 'inicializar', entender se o candidato deseja ou não iniciar a inscrição. Se sim, enviar a primeira pergunta presente no json context, que contém as questões que o candidato deve responder. Se não, utilizar a tool delete_session para remover a sessão do usuário\n\n- Se o status for \"em andamento\" identificar qual pergunta o candidato está respondendo e utilizar a tool update_session_context para atualizar a resposta da pergunta.\n\nO output deve ser:\nmessage: <mensagem do candidato>\nquestion: <id da questão em caso de resposta>\n"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tenta pegar o step do campo correto\nconst step = $node[\"get_session\"].json.step;\n\n// Tenta pegar o JSON completo da sessão\nconst session = $node[\"get_session\"].json;\n\n// Acessa as questões dentro de context > steps > questions\nconst questions = session.context?.[0]?.steps?.questions || [];\n\n// Obtém a questão atual com base no step\nconst currentQuestion = questions[step];\n\n// Retorna no formato desejado\nreturn [\n  {\n    json: {\n      step: step,\n      question: currentQuestion\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        1008
+      ],
+      "id": "cd4e2675-a3c6-4d3c-b9c5-50bf2c4acf3a",
+      "name": "get_answered_question"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $node['AI_answer'].json.output.analise }}",
+                    "rightValue": "valida",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c5d3fc8e-a9dc-4a09-b13b-0e59c4042321"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sim"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0114951f-0db7-406e-b348-3be4dc5f825c",
+                    "leftValue": "={{ $node['AI_answer'].json.output.analise }}",
+                    "rightValue": "invalida",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "incompleta"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        2736,
+        1008
+      ],
+      "id": "7b641eb4-39af-4ddf-b143-4b609f492032",
+      "name": "check_answer"
+    },
+    {
+      "parameters": {
+        "jsCode": "//Obtém o histórico atual da conversa\nconst previousConversation = $node[\"get_session\"].json.conversation || [];\n\n//Obtém a mensagem mais recente do usuário (vinda do nó \"message\")\nconst userMessage = $node[\"message\"].json.output;\n\n//Função para formatar data/hora no padrão \"AAAA-MM-DD hh:mm:ss\"\nfunction getCurrentDateTime() {\n  const now = new Date();\n  const pad = (n) => n.toString().padStart(2, \"0\");\n  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;\n}\n\n//Cria o registro da mensagem do usuário\nconst userEntry = {\n  date: getCurrentDateTime(),\n  from: \"candidate\",\n  message: userMessage\n};\n\n//Atualiza o histórico adicionando as duas novas mensagens\nconst updatedConversation = [...previousConversation, userEntry];\n\n//Retorna o novo histórico no formato esperado pelo n8n\nreturn [\n  {\n    json: {\n      conversation: updatedConversation\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        1008
+      ],
+      "id": "5432f762-7889-4d20-86df-22b7fe030df5",
+      "name": "add_candidate_conversation"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.ats_chat_stage\nSET\n  conversation = '{{ JSON.stringify($node[\"add_candidate_conversation\"].json.conversation) }}'::json\nWHERE \n  id = {{ $node[\"get_session\"].json.id }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2144,
+        1008
+      ],
+      "id": "8ae3e1f7-f65d-479d-b45b-fef43789e78d",
+      "name": "update_candidate_conversation",
+      "credentials": {
+        "postgres": {
+          "id": "97jTGyCb4spQLkik",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "={{ $node['AI_answer'].json.output.devolutiva }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2976,
+        1120
+      ],
+      "id": "1af9b440-0fc3-4288-9fe0-b61d83d073a9",
+      "name": "error_answer",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"analise\": \"valida\",\n\t\"devolutiva\": \"\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2560,
+        1312
+      ],
+      "id": "c7517fa1-6978-4a5e-b016-59ffb11e7ea0",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "=Obrigado,\n\n{{ $node['get_next_question'].json.question.name }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        4176,
+        1136
+      ],
+      "id": "9a145b69-dbff-4ec3-8f45-fab7a97e8039",
+      "name": "msg_start_denied2",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tenta pegar o step do campo correto\nconst step = $node[\"get_session\"].json.step+1;\n\n// Tenta pegar o JSON completo da sessão\nconst session = $node[\"get_session\"].json;\n\n\n// Acessa as questões dentro de context > steps > questions\nconst questions = session.context?.[0]?.steps?.questions || [];\n\n\n// Obtém a questão atual com base no step\nconst currentQuestion = questions[step];\n\n// Retorna no formato desejado\nreturn [\n  {\n    json: {\n      question: currentQuestion\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3248,
+        944
+      ],
+      "id": "e8a5b408-fe1f-4f32-93de-b8de9ebd476b",
+      "name": "get_next_question"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtém o histórico atual da conversa\nconst previousConversation = $node[\"get_session\"].json.conversation || [];\n\n\n// Obtém a questão atual (vinda do nó \"get_first_question\")\nconst question = $node[\"get_next_question\"].json.question;\n\n// Função para formatar data/hora no padrão \"AAAA-MM-DD hh:mm:ss\"\nfunction getCurrentDateTime() {\n  const now = new Date();\n  const pad = (n) => n.toString().padStart(2, \"0\");\n  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;\n}\n\n// Cria o registro da mensagem do sistema (a questão)\nconst systemEntry = {\n  date: getCurrentDateTime(),\n  from: \"system\",\n  message: question?.name || \"Pergunta não encontrada\"\n};\n\n// Atualiza o histórico adicionando as duas novas mensagens\nconst updatedConversation = [...previousConversation, systemEntry];\n\n// Retorna o novo histórico no formato esperado pelo n8n\nreturn [\n  {\n    json: {\n      conversation: updatedConversation\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3504,
+        944
+      ],
+      "id": "02e9e3c0-ef16-4ffc-a14c-bebfb87fc087",
+      "name": "update_system_conversation"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.ats_chat_stage\nSET \n  step = {{ $node[\"get_session\"].json.step + 1 }},\n  status = 'em_andamento',\n  conversation = '{{ JSON.stringify($node[\"update_system_conversation\"].json.conversation) }}'::json,\n  context = '{{ JSON.stringify($node[\"answer_process\"].json.context) }}'::json\nWHERE \n  id = {{ $node[\"get_session\"].json.id }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3776,
+        944
+      ],
+      "id": "d5222924-b15c-4416-88d6-5fe7d6f40329",
+      "name": "update_next_question",
+      "credentials": {
+        "postgres": {
+          "id": "97jTGyCb4spQLkik",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔹 Obtém os dados da sessão\nconst session = $node[\"get_session\"].json;\nconst step = session.step;\nconst context = session.context;\n\n// 🔹 Obtém a resposta do candidato\nconst candidateAnswer = $node[\"message\"].json.output;\n\n// 🔹 Cria uma cópia profunda do contexto para evitar mutação direta\nlet updatedContext = JSON.parse(JSON.stringify(context || []));\n\n// 🔹 Localiza a lista de perguntas\nconst questions = updatedContext?.[0]?.steps?.questions || [];\n\n// 🔹 Validação do step\nif (typeof step !== \"number\" || step < 0 || step >= questions.length) {\n  return [\n    {\n      json: {\n        success: false,\n        message: `Step ${step} fora do intervalo válido (0 a ${questions.length - 1})`,\n        total_questions: questions.length\n      }\n    }\n  ];\n}\n\n// 🔹 Garante que o campo user_answer exista e atualiza com a nova resposta\nif (!questions[step].hasOwnProperty(\"user_answer\")) {\n  questions[step].user_answer = \"\";\n}\nquestions[step].user_answer = candidateAnswer;\n\n// 🔹 Retorna o JSON atualizado no formato esperado pelo n8n\nreturn [\n  {\n    json: {\n      context: updatedContext\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2976,
+        944
+      ],
+      "id": "5de24649-23de-4363-b2fe-abd728207132",
+      "name": "answer_process"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "=Você terminou de responder as perguntas.\nDeseja finalizar e enviar sua inscrição?",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        4464,
+        928
+      ],
+      "id": "521ed2cb-0187-4dfc-9923-fe83f600b3f4",
+      "name": "finish_msg",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "479c885a-2316-47c2-a3e6-412a75228d2e",
+              "leftValue": "={{ $node['get_session'].json.context.first().steps.total_questions }}",
+              "rightValue": "={{ $node['get_session'].json.step + 1 }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3984,
+        944
+      ],
+      "id": "30c286d4-23a6-49ef-ad56-b188d28d79b5",
+      "name": "last_question"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.ats_chat_stage\nSET \n  status = 'finalizada'\nWHERE \n  id = {{ $node[\"get_session\"].json.id }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        4240,
+        928
+      ],
+      "id": "239fe7bd-60db-4b86-8ddb-989efbe8e72d",
+      "name": "update_finish_status",
+      "credentials": {
+        "postgres": {
+          "id": "97jTGyCb4spQLkik",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1616,
+        2064
+      ],
+      "id": "98f6194d-6927-48d5-ac89-362ebd00f5ef",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "wjVVa1OwzrlzaMG5",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Seu objetivo é identifique se o candidato de um processo selectivo deseja ou não finalizar a sua inscrição.\nRegras:\nResponda somente \"sim\" ou \"não\"\nSe a resposta não tiver clara, o output deve ser \"neutro\".",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=#Mensagem do candidato:\n{{ $node[\"message\"].json.output }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1616,
+        1840
+      ],
+      "id": "e572cb54-2db2-4ace-bb04-14a395e54c02",
+      "name": "AI_finish",
+      "notes": "Você é um assistente de mensagens e precisa avaliar a conversa entre o candidato e a empresa para a sua inscrição.\n\nVocê deve:\n- Atualizar o Json da conversa utilizando a tool 'update_session_conversation'\n\n- Identificar em que momento da inscrição o candidato está a partir do status da session\n\n- Se o status for 'inicializar', entender se o candidato deseja ou não iniciar a inscrição. Se sim, enviar a primeira pergunta presente no json context, que contém as questões que o candidato deve responder. Se não, utilizar a tool delete_session para remover a sessão do usuário\n\n- Se o status for \"em andamento\" identificar qual pergunta o candidato está respondendo e utilizar a tool update_session_context para atualizar a resposta da pergunta.\n\nO output deve ser:\nmessage: <mensagem do candidato>\nquestion: <id da questão em caso de resposta>\n"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $node['AI_start'].json.output }}",
+                    "rightValue": "sim",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c5d3fc8e-a9dc-4a09-b13b-0e59c4042321"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sim"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "fe9cf46d-a1d1-474d-8134-e45bf3b72314",
+                    "leftValue": "={{ $node['AI_start'].json.output }}",
+                    "rightValue": "não",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "nao"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0114951f-0db7-406e-b348-3be4dc5f825c",
+                    "leftValue": "={{ $node['AI_start'].json.output }}",
+                    "rightValue": "neutro",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "neutro"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1952,
+        1824
+      ],
+      "id": "5fb3143d-8476-4491-9d05-11cfe52ee479",
+      "name": "check_finish_comand"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://inscricaowhataspp-production.up.railway.app/update_session",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n{{ JSON.stringfy($node['AI Agent'].json.output) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2256,
+        1680
+      ],
+      "id": "129fb884-4b7c-4d72-8a09-bebf8ec2a02c",
+      "name": "candidate_register"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "=Sua inscrição foi efetuada com sucesso!\nDesejamos boa sorte no processo seletivo :)",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2480,
+        1680
+      ],
+      "id": "0a61c632-a6cd-49c6-97fb-b3747e823a9c",
+      "name": "end_success_msg",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "=Eita, o que deseja fazer agora?",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2256,
+        1840
+      ],
+      "id": "7a5263e2-97c0-4383-9bc0-e6a12a532357",
+      "name": "end_waiting_msg",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "mindsight",
+        "remoteJid": "={{ $node['data'].json.phone }}",
+        "messageText": "=Desculpe, não entendi",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2256,
+        2032
+      ],
+      "id": "824aa4b2-2964-481a-af4a-0a91daca8c03",
+      "name": "end_unknow_msg",
+      "credentials": {
+        "evolutionApi": {
+          "id": "KnSN1rndyydH8dCp",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Finishing process",
+        "height": 704,
+        "width": 2352,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1520,
+        1584
+      ],
+      "typeVersion": 1,
+      "id": "58dc4aee-6dbf-4391-ad58-c26973d708a8",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "data": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "audio_converter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "document_converter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "audio_converter": {
+      "main": [
+        [
+          {
+            "node": "transcricao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "document_converter": {
+      "main": [
+        [
+          {
+            "node": "upload_file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transcricao": {
+      "main": [
+        [
+          {
+            "node": "message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "upload_file": {
+      "main": [
+        [
+          {
+            "node": "message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "message": {
+      "main": [
+        [
+          {
+            "node": "get_session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_session": {
+      "main": [
+        [
+          {
+            "node": "check_session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verify_session_status": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verify_job_data": {
+      "main": [
+        [
+          {
+            "node": "get_job",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "msg_no_job_founded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar texto1": {
+      "main": [
+        []
+      ]
+    },
+    "get_job": {
+      "main": [
+        [
+          {
+            "node": "msg_start_command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_session": {
+      "main": [
+        [
+          {
+            "node": "verify_job_data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "is_start_msg",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "get_answered_question",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI_finish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "msg_no_job_founded": {
+      "main": [
+        []
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "msg_no_job_founded2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI_start",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "is_start_msg": {
+      "main": [
+        [
+          {
+            "node": "AI_start",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_start": {
+      "main": [
+        [
+          {
+            "node": "check_start_comand",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_start_comand": {
+      "main": [
+        [
+          {
+            "node": "get_first_question",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "delete_start_session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "get_job_neutro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "msg_start_command": {
+      "main": [
+        [
+          {
+            "node": "create_session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "delete_start_session": {
+      "main": [
+        [
+          {
+            "node": "msg_start_denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_first_question": {
+      "main": [
+        [
+          {
+            "node": "update_first_conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_first_question": {
+      "main": [
+        [
+          {
+            "node": "msg_start_denied1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_first_conversation": {
+      "main": [
+        [
+          {
+            "node": "update_first_question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_job_neutro": {
+      "main": [
+        [
+          {
+            "node": "msg_start_neutra",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI_answer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_answered_question": {
+      "main": [
+        [
+          {
+            "node": "add_candidate_conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_answer": {
+      "main": [
+        [
+          {
+            "node": "check_answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "add_candidate_conversation": {
+      "main": [
+        [
+          {
+            "node": "update_candidate_conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_candidate_conversation": {
+      "main": [
+        [
+          {
+            "node": "AI_answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_answer": {
+      "main": [
+        [
+          {
+            "node": "answer_process",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "error_answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI_answer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_next_question": {
+      "main": [
+        [
+          {
+            "node": "update_system_conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_system_conversation": {
+      "main": [
+        [
+          {
+            "node": "update_next_question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_next_question": {
+      "main": [
+        [
+          {
+            "node": "last_question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "answer_process": {
+      "main": [
+        [
+          {
+            "node": "get_next_question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "last_question": {
+      "main": [
+        [
+          {
+            "node": "update_finish_status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "msg_start_denied2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_finish_status": {
+      "main": [
+        [
+          {
+            "node": "finish_msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI_finish",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI_finish": {
+      "main": [
+        [
+          {
+            "node": "check_finish_comand",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_finish_comand": {
+      "main": [
+        [
+          {
+            "node": "candidate_register",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "end_waiting_msg",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "end_unknow_msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "candidate_register": {
+      "main": [
+        [
+          {
+            "node": "end_success_msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "61d16ad5-4637-4e59-8160-fe2268d6c7a9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b0b4c619ab263b67c7a77c497d88902b415b826466c23f3574680205333638e"
+  },
+  "id": "EatYCMEHvmzU7pHx",
+  "tags": []
+}

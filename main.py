@@ -98,7 +98,7 @@ def add_application():
         questions = context[0].get("steps", {}).get("questions", [])
 
         # Inicializa variáveis
-        name = phone = email = document = None
+        name = phone = cpf = email = document = None
         customized_rows = []
 
         for q in questions:
@@ -111,6 +111,8 @@ def add_application():
                 name = q_user_answer
             elif q_key == "email" and q_type == "basic":
                 email = q_user_answer
+            elif q_key == "cpf" and q_type == "basic":
+                cpf = q_user_answer
             elif q_key == "document":
                 document = q_user_answer
 
@@ -131,7 +133,7 @@ def add_application():
         questions_df = pd.DataFrame(customized_rows)
 
         #cria o candidato
-        candidate_id = create_candidate(tenant_name, name, email, document)
+        candidate_id = create_candidate(tenant_name, name, email, cpf)
 
         #cria telefone do candidato
         create_candidate_phone(tenant_name, candidate_id, phone)

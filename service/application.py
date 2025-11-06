@@ -2,16 +2,13 @@ from db_config import engine
 from sqlalchemy import text
 from datetime import datetime
 
-def create_candidate(tenant_name: str, name: str, email: str, document: str):
+def create_candidate(tenant_name: str, name: str, email: str, cpf: str):
     """
     Cadastra um novo candidato na tabela ats_candidate.
     Apenas os campos iniciais: nome, email e CPF.
     """
 
-    # Garante que o CPF tenha apenas números
-    cpf = ''.join([c for c in document if c.isdigit()])
-
-    # Define timestamps
+        # Define timestamps
     now = datetime.now()
 
     # SQL de inserção

@@ -86,14 +86,12 @@ def update_session():
 @app.route("/add_application", methods=["POST"])
 def add_application():
     try:
-        
         data = request.get_json(force=True)   
         # Extrai o corpo principal
-        chat_id = data["ats_chat_stage_id"]
-        #get_chat_stage_by_id (chat_id)
+        body = data["body"]
 
-        # # Cria variáveis individuais
-        # name = body["name"]
+        # Cria variáveis individuais
+        chat_id = body["ats_chat_stage_id"]
         # phone = body["phone"]
         # email = body["email"]
         # document = body["document"]

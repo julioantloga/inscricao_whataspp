@@ -1,6 +1,8 @@
 from db_config import engine
 from sqlalchemy import text
 from datetime import datetime
+import pandas as pd
+
 
 def create_candidate(tenant_name: str, name: str, email: str, cpf: str):
     """
@@ -42,7 +44,6 @@ def create_candidate_phone(tenant_name: str, candidate_id: int, phone: str):
     """
     # Caso não tenha código, define 55 como padrão (Brasil)
     country_code = 55
-
 
     # Define tipo padrão (ex: mobile)
     phone_type = "mobile"
@@ -141,7 +142,7 @@ def save_answers(df_questions, recruitment_process_id: int, tenant_name: str):
 
     with engine.begin() as conn:
         for _, row in df_questions.iterrows():
-            question_id = int(row["id"])
+            question_id = int(row["id"]) if pd.notna(row["id"]) else None
             answer = row["user_answer"]
             answer_type = row["answer_type"]
             answer_options = row.get("answer_options", [])
@@ -168,14 +169,12 @@ def save_answers(df_questions, recruitment_process_id: int, tenant_name: str):
             elif answer_type == "options":
                 # Busca o ID da opção que corresponde à resposta
                 matched_option_id = 0
+                
                 if isinstance(answer_options, list):
                     for opt in answer_options:
-                        if str(opt.get("desc") or opt.get("option_name")).strip().lower() == str(answer).strip().lower():
-                            matched_option_id = opt.get("opcao") or opt.get("option_id")
+                        if str(opt.get("option_id")) == str(answer):
+                            matched_option_id = opt["option_id"]
                             break
-
-                if matched_option_id is None:
-                    matched_option_id = 0
 
                 sql = text(f"""
                     INSERT INTO {tenant_name}.ats_answeralternative

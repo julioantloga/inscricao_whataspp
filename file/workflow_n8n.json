@@ -318,49 +318,71 @@ body.entry[0].chenges[0].value.messages[0].type = "document"
     {
       "id": null,
       "name": "Qual o seu nome completo?", 
-      "type": "basic", 
+      "type": "basic",
+      "key": "name",
       "sequence": 1, 
-      "answer_type": "text", 
+      "answer_type": "text",
+      "user_answer": "", 
       "answer_options": []
     },
     {
       "id": null,
       "name": "Qual o seu email?", 
       "type": "basic", 
+      "key": "emai",
       "sequence": 2, 
-      "answer_type": "text", 
+      "answer_type": "text",
+      "user_answer": "", 
       "answer_options": []
     },
     {
       "id": null,
       "name": "Por favor digite seu CPF (somente os números, sem pontos e traços):", 
-      "type": "basic", 
+      "type": "basic",
+      "key": "cpf", 
       "sequence": 3, 
-      "answer_type": "text", 
+      "answer_type": "text",
+      "user_answer": "", 
       "answer_options": []
     },
     {
       "id": 1,
       "name": "Descreva sua experiência com frameworks como React ou Django.", 
-      "type": "customized", 
+      "type": "customized",
+      "key": "", 
       "sequence": 4, 
-      "answer_type": "text", 
+      "answer_type": "text",
+      "user_answer": "", 
       "answer_options": []
     },
     {
       "id": 2,
       "name": "Por que deseja trabalhar conosco?", 
-      "type": "customized", 
+      "type": "customized",
+      "key": "", 
       "sequence": 5, 
-      "answer_type": "text", 
+      "answer_type": "text",
+      "user_answer": "", 
+      "answer_options": []
+    },
+    {
+      "id": null,
+      "name": "Agora, nos envie o arquivo do seu currículo por aqui. Pode ser um documento PDF ou Word", 
+      "type": "basic",
+      "key": "", 
+      "sequence": 6, 
+      "answer_type": "text",
+      "user_answer": "", 
       "answer_options": []
     },
     {
       "id": null,
       "name": "como ficou sabendo da vaga?", 
-      "type": "basic", 
-      "sequence": 6, 
-      "answer_type": "source", 
+      "type": "basic",
+      "key": "source",
+      "sequence": 7, 
+      "answer_type": "options",
+      "user_answer": "",
       "answer_options": [
         {"option_id":1,"option":"Site da empresa"},
         {"option_id":2,"option":"LinkedIn"},
@@ -371,4 +393,4 @@ body.entry[0].chenges[0].value.messages[0].type = "document"
       ]
     }
     ],
-    "total_questions": 6}}
+    "total_questions": 7}}

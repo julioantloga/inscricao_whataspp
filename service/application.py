@@ -210,6 +210,7 @@ def get_chat_stage_by_id(chat_stage_id):
         return result
 
 def update_chat_stage(chat_stage_id, tenant_name, conversation, status, context=None):
+
     """
     Atualiza os campos conversation, status e opcionalmente context da tabela ats_chat_stage.
     """
@@ -233,3 +234,4 @@ def update_chat_stage(chat_stage_id, tenant_name, conversation, status, context=
         update_sql += " WHERE id = :chat_stage_id"
 
         conn.execute(text(update_sql), update_fields)
+

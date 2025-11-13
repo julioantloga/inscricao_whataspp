@@ -3,7 +3,7 @@ from service.application import create_candidate, create_candidate_phone, create
 import pandas as pd
 import json
 from datetime import datetime
-
+from db_config import engine
 
 app = Flask(__name__)
 
@@ -79,7 +79,6 @@ def update_session():
     except Exception as e:
         print("Erro interno:", e)
         return jsonify({"error": str(e)}), 500
-
 
 
 # POST: recebe JSON e retorna processado
@@ -181,6 +180,61 @@ def add_application():
         # #salva as respostas
         # #save_answers(df_questions, recruitment_process_id, tenant_name)
         #return jsonify({"chat_id": chat_id}), 200
+
+@app.route("/getquestions", methods=["GET"])
+def get_basic_questions():
+    with engine.begin() as conn:
+        # Buscar campos da tabela ats_candidateregisterfield
+        fields_sql = text("""
+            SELECT id, key, visible, required
+            FROM mindsight.ats_candidateregisterfield
+            ORDER BY id
+        """)
+        fields = conn.execute(fields_sql).mappings().all()
+
+        # Buscar opções da tabela ats_candidatesourceoption (caso "source" exista)
+        source_options_sql = text("""
+            SELECT id, name
+            FROM mindsight.ats_candidatesourceoption
+            WHERE visible = true
+            ORDER BY sequence ASC
+        """)
+        source_options = conn.execute(source_options_sql).mappings().all()
+
+    questions = []
+    sequence = 1
+
+    for field in fields:
+        key = field["key"].lower()
+
+        question = {
+            "id": None,
+            "key": key,
+            "name": key,  # Usa o valor exato da key como nome da pergunta
+            "type": "basic",
+            "sequence": sequence,
+            "answer_type": "text",  # padrão
+            "user_answer": "",
+            "answer_options": []
+        }
+
+        if key == "source":
+            question["answer_type"] = "options"
+            question["answer_options"] = [
+                {"option": opt["name"], "option_id": opt["id"]} for opt in source_options
+            ]
+
+        questions.append(question)
+        sequence += 1
+
+    output = {
+        "steps": {
+            "questions": questions,
+            "total_questions": len(questions)
+        }
+    }
+
+    return jsonify(output)
 
 # Executa localmente (Railway ignora essa parte no deploy)
 if __name__ == "__main__":

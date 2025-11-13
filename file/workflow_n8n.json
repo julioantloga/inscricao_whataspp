@@ -1,3 +1,27 @@
+Vaga 1 e Vaga 2
+Executivo de Vendas Júnior, Pré Vendas - SDR
+
+Basic questions:
+Nome Completo
+E-mail
+Telefone
+tipo_telefone
+LinkedIn ou Currículo
+Portfolio / Github / Site
+País
+Estado
+Cidade
+Data de Nascimento
+Pretensão Salarial
+Como ficou sabendo da vaga? (Instagram, Facebook, INdicação, Outros, Central Oportunidades Mindsight, Careerjet, Jooble, ENEJ 2025 - JOÃO PESSOA)
+
+
+"
+Obrigado pelo interesse em fazer parte da Mindsight
+A sua candidatura está confirmada. Agora o próximo passo é realizar alguns testes de mapeamento de perfil, verifique o seu email.
+"
+
+
 CREATE TABLE demo.ats_jobposting (
     id bigint NOT NULL,
     name character varying(255) NOT NULL,
@@ -394,3 +418,6 @@ body.entry[0].chenges[0].value.messages[0].type = "document"
     }
     ],
     "total_questions": 7}}
+
+
+

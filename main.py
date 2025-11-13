@@ -4,6 +4,7 @@ import pandas as pd
 import json
 from datetime import datetime
 from db_config import engine
+from sqlalchemy import text
 
 app = Flask(__name__)
 
@@ -12,8 +13,7 @@ app = Flask(__name__)
 def home():
     return jsonify({"message": "Olá!"})
 
-# POST: recebe JSON e retorna processado
-from service.application import get_chat_stage_by_id, update_chat_stage
+
 
 @app.route("/update_session", methods=["POST"])
 def update_session():
@@ -235,6 +235,7 @@ def get_basic_questions():
     }
 
     return jsonify(output)
+
 
 # Executa localmente (Railway ignora essa parte no deploy)
 if __name__ == "__main__":

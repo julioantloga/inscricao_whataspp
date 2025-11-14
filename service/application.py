@@ -4,6 +4,8 @@ from sqlalchemy import text
 from datetime import datetime
 import pandas as pd
 import json
+import unicodedata
+
 
 def create_candidate(tenant_name: str, name: str, email: str, cpf: str):
     """
@@ -237,8 +239,20 @@ def update_chat_stage(chat_stage_id, tenant_name, conversation, status, context=
         conn.execute(text(update_sql), update_fields)
 
 def get_basic_questions():
+    """
+    Gera questões básicas da tabela mindsight.ats_candidateregisterfield.
+    Ignora campos irrelevantes como 'país', 'estado', etc.
+    """
+    # Lista de chaves a serem ignoradas (normalizadas)
+    ignored_keys = {"pais", "país", "country", "estado", "state"}
+
+    def normalize_key(key):
+        """Remove acentos e converte para lowercase."""
+        nfkd = unicodedata.normalize('NFKD', key)
+        only_ascii = nfkd.encode('ASCII', 'ignore').decode('utf-8')
+        return only_ascii.strip().lower()
+
     with engine.begin() as conn:
-        # Buscar os campos configurados no cadastro
         fields_sql = text("""
             SELECT id, key, visible, required
             FROM mindsight.ats_candidateregisterfield
@@ -246,8 +260,7 @@ def get_basic_questions():
         """)
         fields = conn.execute(fields_sql).mappings().all()
 
-        # Verifica se há campo 'source' para buscar as opções
-        has_source = any(field["key"].lower() == "source" for field in fields)
+        has_source = any(normalize_key(field["key"]) == "source" for field in fields)
         source_options = []
 
         if has_source:
@@ -263,12 +276,17 @@ def get_basic_questions():
     sequence = 1
 
     for field in fields:
-        key = field["key"].lower()
+        raw_key = field["key"]
+        key = raw_key.strip().lower()
+        normalized_key = normalize_key(raw_key)
+
+        if normalized_key in ignored_keys:
+            continue  # ignora campos como "país", "estado", etc.
 
         question = {
             "id": None,
             "key": key,
-            "name": key,  # conforme solicitado: mesmo valor da key
+            "name": key,
             "type": "basic",
             "sequence": sequence,
             "answer_type": "text",
@@ -276,7 +294,7 @@ def get_basic_questions():
             "answer_options": []
         }
 
-        if key == "source":
+        if normalized_key == "source":
             question["answer_type"] = "options"
             question["answer_options"] = [
                 {"option": opt["name"], "option_id": opt["id"]}

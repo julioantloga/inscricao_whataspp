@@ -249,7 +249,7 @@ def create_job_posting():
             "careerjet_external_publication": False,
             "jooble_external_publication": False,
             "competencies": [],
-            "question_sequence": json.dumps(question_json)
+            "question_sequence": json.dumps(question_json, ensure_ascii=False)
         })
 
 

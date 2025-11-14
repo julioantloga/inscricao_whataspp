@@ -252,28 +252,6 @@ def create_job_posting():
             "question_sequence": json.dumps(question_json, ensure_ascii=False)
         })
 
-
-
-        result = conn.execute(insert_sql, {
-            "name": name,
-            "status": "aberta",
-            "positions": 0,
-            "created_at": now,
-            "updated_at": now,
-            "description": "",
-            "external_publication": False,
-            "netvagas_external_publication": False,
-            "google_for_jobs_external_publication": False,
-            "already_suspended": False,
-            "already_canceled": False,
-            "linkedin_external_publication": False,
-            "unlisted_external_publication": False,
-            "careerjet_external_publication": False,
-            "jooble_external_publication": False,
-            "competencies": [],
-            "question_sequence": json.dumps(question_json)
-        })
-
         new_id = result.scalar()
 
     return jsonify({

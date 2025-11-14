@@ -211,26 +211,47 @@ def create_job_posting():
                 competencies,
                 question_sequence
             ) VALUES (
-                %(name)s,
-                %(status)s,
-                %(positions)s,
-                %(created_at)s,
-                %(updated_at)s,
-                %(description)s,
-                %(external_publication)s,
-                %(netvagas_external_publication)s,
-                %(google_for_jobs_external_publication)s,
-                %(already_suspended)s,
-                %(already_canceled)s,
-                %(linkedin_external_publication)s,
-                %(unlisted_external_publication)s,
-                %(careerjet_external_publication)s,
-                %(jooble_external_publication)s,
-                %(competencies)s,
-                %(question_sequence)s
+                :name,
+                :status,
+                :positions,
+                :created_at,
+                :updated_at,
+                :description,
+                :external_publication,
+                :netvagas_external_publication,
+                :google_for_jobs_external_publication,
+                :already_suspended,
+                :already_canceled,
+                :linkedin_external_publication,
+                :unlisted_external_publication,
+                :careerjet_external_publication,
+                :jooble_external_publication,
+                :competencies,
+                :question_sequence
             )
             RETURNING id
         """)
+
+        result = conn.execute(insert_sql, {
+            "name": name,
+            "status": "aberta",
+            "positions": 0,
+            "created_at": now,
+            "updated_at": now,
+            "description": "",
+            "external_publication": False,
+            "netvagas_external_publication": False,
+            "google_for_jobs_external_publication": False,
+            "already_suspended": False,
+            "already_canceled": False,
+            "linkedin_external_publication": False,
+            "unlisted_external_publication": False,
+            "careerjet_external_publication": False,
+            "jooble_external_publication": False,
+            "competencies": [],
+            "question_sequence": json.dumps(question_json)
+        })
+
 
 
         result = conn.execute(insert_sql, {

@@ -211,26 +211,27 @@ def create_job_posting():
                 competencies,
                 question_sequence
             ) VALUES (
-                :name,
-                :status,
-                :positions,
-                :created_at,
-                :updated_at,
-                :description,
-                :external_publication,
-                :netvagas_external_publication,
-                :google_for_jobs_external_publication,
-                :already_suspended,
-                :already_canceled,
-                :linkedin_external_publication,
-                :unlisted_external_publication,
-                :careerjet_external_publication,
-                :jooble_external_publication,
-                :competencies,
-                :question_sequence::json
+                %(name)s,
+                %(status)s,
+                %(positions)s,
+                %(created_at)s,
+                %(updated_at)s,
+                %(description)s,
+                %(external_publication)s,
+                %(netvagas_external_publication)s,
+                %(google_for_jobs_external_publication)s,
+                %(already_suspended)s,
+                %(already_canceled)s,
+                %(linkedin_external_publication)s,
+                %(unlisted_external_publication)s,
+                %(careerjet_external_publication)s,
+                %(jooble_external_publication)s,
+                %(competencies)s,
+                %(question_sequence)s
             )
             RETURNING id
         """)
+
 
         result = conn.execute(insert_sql, {
             "name": name,

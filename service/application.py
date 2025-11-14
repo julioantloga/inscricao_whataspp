@@ -239,20 +239,32 @@ def update_chat_stage(chat_stage_id, tenant_name, conversation, status, context=
         conn.execute(text(update_sql), update_fields)
 
 def get_basic_questions():
-    """
-    Gera questões básicas da tabela mindsight.ats_candidateregisterfield.
-    Ignora campos irrelevantes como 'país', 'estado', etc.
-    """
-    # Lista de chaves a serem ignoradas (normalizadas)
+
+    question_labels = {
+        "nome":   {"label": "Qual o seu nome completo?", "answer_type": "text"},
+        "e-mail":  {"label": "Qual o seu e-mail?","answer_type": "text"},
+        "cpf":    {"label": "Informe seu CPF (somente números, não incula pontos ou traços)","answer_type": "text"},
+        "linkedin ou currículo":  {"label": "Por favor, nos envie seu currículo ou o link do seu perfil do linkedin. se escolher enviar o currículo, utilize a opção de envio de documento aqui do whatsapp.?", "answer_type": "text"},
+        "cidade":  {"label": "Em qual cidade você está morando hoje?", "answer_type": "text"},
+        "data de nascimento":  {"label": "Qual sua data de nascimento? responda nesse formato (DD/MM/AAAA), por favor","answer_type": "text"},
+        "pretensão salarial":  {"label": "Qual a sua pretensão salarial?", "answer_type": "text"},
+        "portfolio / github / site":  {"label": "você possui algum site, github ou link com seu portfólio? se sim, digite o endereço de acesso. caso contrário é só responder não.", "answer_type": "text"},
+        "phone":  {"label": "Qual o seu telefone?", "answer_type": "text"},
+        "telefone":  {"label": "Qual o seu telefone?", "answer_type": "text"},
+        "source": {"label": "Como você ficou sabendo da vaga? escolha uma das opções abaixo", "answer_type": "options"},
+    }
+
+    # Lista de chaves ignoradas
     ignored_keys = {"pais", "país", "country", "estado", "state"}
 
     def normalize_key(key):
-        """Remove acentos e converte para lowercase."""
+        """Remove acentos e coloca em minúsculas para comparação"""
         nfkd = unicodedata.normalize('NFKD', key)
         only_ascii = nfkd.encode('ASCII', 'ignore').decode('utf-8')
         return only_ascii.strip().lower()
 
     with engine.begin() as conn:
+        # Busca campos configurados
         fields_sql = text("""
             SELECT id, key, visible, required
             FROM mindsight.ats_candidateregisterfield
@@ -260,10 +272,9 @@ def get_basic_questions():
         """)
         fields = conn.execute(fields_sql).mappings().all()
 
-        has_source = any(normalize_key(field["key"]) == "source" for field in fields)
+        # Carrega opções do campo 'source', se necessário
         source_options = []
-
-        if has_source:
+        if "source" in question_labels and question_labels["source"]["answer_type"] == "options":
             source_options_sql = text("""
                 SELECT id, name
                 FROM mindsight.ats_candidatesourceoption
@@ -277,25 +288,32 @@ def get_basic_questions():
 
     for field in fields:
         raw_key = field["key"]
-        key = raw_key.strip().lower()
         normalized_key = normalize_key(raw_key)
+        key_lower = raw_key.strip().lower()
 
+        # Ignorar campos irrelevantes
         if normalized_key in ignored_keys:
-            continue  # ignora campos como "país", "estado", etc.
+            continue
 
+        # Obter config da questão
+        question_config = question_labels.get(key_lower)
+        if not question_config:
+            continue  # pula se não estiver no dicionário
+
+        answer_type = question_config["answer_type"]
         question = {
             "id": None,
-            "key": key,
-            "name": key,
+            "key": key_lower,
+            "name": question_config["label"],
             "type": "basic",
             "sequence": sequence,
-            "answer_type": "text",
+            "answer_type": answer_type,
             "user_answer": "",
             "answer_options": []
         }
 
-        if normalized_key == "source":
-            question["answer_type"] = "options"
+        # Se for do tipo options e for a chave 'source', preenche as opções
+        if key_lower == "source" and answer_type == "options":
             question["answer_options"] = [
                 {"option": opt["name"], "option_id": opt["id"]}
                 for opt in source_options

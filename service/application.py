@@ -238,7 +238,7 @@ def update_chat_stage(chat_stage_id, tenant_name, conversation, status, context=
 
 def get_basic_questions():
     with engine.begin() as conn:
-        # Buscar campos da tabela ats_candidateregisterfield
+        # Buscar os campos configurados no cadastro
         fields_sql = text("""
             SELECT id, key, visible, required
             FROM mindsight.ats_candidateregisterfield
@@ -246,14 +246,18 @@ def get_basic_questions():
         """)
         fields = conn.execute(fields_sql).mappings().all()
 
-        # Buscar opções da tabela ats_candidatesourceoption (caso "source" exista)
-        source_options_sql = text("""
-            SELECT id, name
-            FROM mindsight.ats_candidatesourceoption
-            WHERE visible = true
-            ORDER BY sequence ASC
-        """)
-        source_options = conn.execute(source_options_sql).mappings().all()
+        # Verifica se há campo 'source' para buscar as opções
+        has_source = any(field["key"].lower() == "source" for field in fields)
+        source_options = []
+
+        if has_source:
+            source_options_sql = text("""
+                SELECT id, name
+                FROM mindsight.ats_candidatesourceoption
+                WHERE visible = true
+                ORDER BY sequence ASC
+            """)
+            source_options = conn.execute(source_options_sql).mappings().all()
 
     questions = []
     sequence = 1
@@ -264,10 +268,10 @@ def get_basic_questions():
         question = {
             "id": None,
             "key": key,
-            "name": key,  # Usa o valor exato da key como nome da pergunta
+            "name": key,  # conforme solicitado: mesmo valor da key
             "type": "basic",
             "sequence": sequence,
-            "answer_type": "text",  # padrão
+            "answer_type": "text",
             "user_answer": "",
             "answer_options": []
         }
@@ -275,17 +279,16 @@ def get_basic_questions():
         if key == "source":
             question["answer_type"] = "options"
             question["answer_options"] = [
-                {"option": opt["name"], "option_id": opt["id"]} for opt in source_options
+                {"option": opt["name"], "option_id": opt["id"]}
+                for opt in source_options
             ]
 
         questions.append(question)
         sequence += 1
 
-    output = {
+    return {
         "steps": {
             "questions": questions,
             "total_questions": len(questions)
         }
     }
-
-    return jsonify(output)

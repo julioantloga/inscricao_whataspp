@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from service.application import create_candidate, create_candidate_phone, create_recruitment_process, get_chat_stage_by_id, update_chat_stage, save_answers
+from service.application import get_basic_questions, create_candidate, create_candidate_phone, create_recruitment_process, get_chat_stage_by_id, update_chat_stage, save_answers
 import pandas as pd
 import json
 from datetime import datetime
@@ -181,60 +181,83 @@ def add_application():
         # #save_answers(df_questions, recruitment_process_id, tenant_name)
         #return jsonify({"chat_id": chat_id}), 200
 
-@app.route("/getquestions", methods=["GET"])
-def get_basic_questions():
+@app.route("/createjobposting", methods=["GET"])
+def create_job_posting():
+    name = request.args.get("name")
+    if not name:
+        return jsonify({"error": "Parâmetro 'name' é obrigatório"}), 400
+
+    question_json = get_basic_questions()
+    now = datetime.utcnow()
+
     with engine.begin() as conn:
-        # Buscar campos da tabela ats_candidateregisterfield
-        fields_sql = text("""
-            SELECT id, key, visible, required
-            FROM mindsight.ats_candidateregisterfield
-            ORDER BY id
+        insert_sql = text("""
+            INSERT INTO mindsight.ats_jobposting (
+                name,
+                status,
+                positions,
+                created_at,
+                updated_at,
+                description,
+                external_publication,
+                netvagas_external_publication,
+                google_for_jobs_external_publication,
+                already_suspended,
+                already_canceled,
+                linkedin_external_publication,
+                unlisted_external_publication,
+                careerjet_external_publication,
+                jooble_external_publication,
+                competencies,
+                question_sequence
+            ) VALUES (
+                :name,
+                :status,
+                :positions,
+                :created_at,
+                :updated_at,
+                :description,
+                :external_publication,
+                :netvagas_external_publication,
+                :google_for_jobs_external_publication,
+                :already_suspended,
+                :already_canceled,
+                :linkedin_external_publication,
+                :unlisted_external_publication,
+                :careerjet_external_publication,
+                :jooble_external_publication,
+                :competencies,
+                :question_sequence::json
+            )
+            RETURNING id
         """)
-        fields = conn.execute(fields_sql).mappings().all()
 
-        # Buscar opções da tabela ats_candidatesourceoption (caso "source" exista)
-        source_options_sql = text("""
-            SELECT id, name
-            FROM mindsight.ats_candidatesourceoption
-            WHERE visible = true
-            ORDER BY sequence ASC
-        """)
-        source_options = conn.execute(source_options_sql).mappings().all()
+        result = conn.execute(insert_sql, {
+            "name": name,
+            "status": "aberta",
+            "positions": 0,
+            "created_at": now,
+            "updated_at": now,
+            "description": "",
+            "external_publication": False,
+            "netvagas_external_publication": False,
+            "google_for_jobs_external_publication": False,
+            "already_suspended": False,
+            "already_canceled": False,
+            "linkedin_external_publication": False,
+            "unlisted_external_publication": False,
+            "careerjet_external_publication": False,
+            "jooble_external_publication": False,
+            "competencies": [],
+            "question_sequence": json.dumps(question_json)
+        })
 
-    questions = []
-    sequence = 1
+        new_id = result.scalar()
 
-    for field in fields:
-        key = field["key"].lower()
-
-        question = {
-            "id": None,
-            "key": key,
-            "name": key,  # Usa o valor exato da key como nome da pergunta
-            "type": "basic",
-            "sequence": sequence,
-            "answer_type": "text",  # padrão
-            "user_answer": "",
-            "answer_options": []
-        }
-
-        if key == "source":
-            question["answer_type"] = "options"
-            question["answer_options"] = [
-                {"option": opt["name"], "option_id": opt["id"]} for opt in source_options
-            ]
-
-        questions.append(question)
-        sequence += 1
-
-    output = {
-        "steps": {
-            "questions": questions,
-            "total_questions": len(questions)
-        }
-    }
-
-    return jsonify(output)
+    return jsonify({
+        "message": "Job posting criada com sucesso",
+        "job_posting_id": new_id
+    })
 
 
 # Executa localmente (Railway ignora essa parte no deploy)

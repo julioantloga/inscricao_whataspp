@@ -238,7 +238,7 @@ def update_chat_stage(chat_stage_id, tenant_name, conversation, status, context=
 
         conn.execute(text(update_sql), update_fields)
 
-def get_basic_questions():
+def get_basic_questions(tenant: str):
 
     question_labels = {
         "nome":   {"label": "Qual o seu nome completo?", "answer_type": "text"},
@@ -248,7 +248,7 @@ def get_basic_questions():
         "cidade":  {"label": "Em qual cidade você está morando hoje?", "answer_type": "text"},
         "data de nascimento":  {"label": "Qual sua data de nascimento? responda nesse formato (DD/MM/AAAA), por favor","answer_type": "text"},
         "pretensão salarial":  {"label": "Qual a sua pretensão salarial?", "answer_type": "text"},
-        "portfolio / github / site":  {"label": "você possui algum site, github ou link com seu portfólio? se sim, digite o endereço de acesso. caso contrário é só responder não.", "answer_type": "text"},
+        "portfolio / github / site":  {"label": "Você possui algum site, github ou link com seu portfólio? se sim, digite o endereço de acesso. caso contrário é só responder não.", "answer_type": "text"},
         "phone":  {"label": "Qual o seu telefone?", "answer_type": "text"},
         "telefone":  {"label": "Qual o seu telefone?", "answer_type": "text"},
         "source": {"label": "Como você ficou sabendo da vaga? escolha uma das opções abaixo", "answer_type": "options"},
@@ -265,9 +265,9 @@ def get_basic_questions():
 
     with engine.begin() as conn:
         # Busca campos configurados
-        fields_sql = text("""
+        fields_sql = text(f"""
             SELECT id, key, visible, required
-            FROM mindsight.ats_candidateregisterfield
+            FROM mi{tenant}ndsight.ats_candidateregisterfield
             ORDER BY id
         """)
         fields = conn.execute(fields_sql).mappings().all()
@@ -275,9 +275,9 @@ def get_basic_questions():
         # Carrega opções do campo 'source', se necessário
         source_options = []
         if "source" in question_labels and question_labels["source"]["answer_type"] == "options":
-            source_options_sql = text("""
+            source_options_sql = text(f"""
                 SELECT id, name
-                FROM mindsight.ats_candidatesourceoption
+                FROM {tenant}.ats_candidatesourceoption
                 WHERE visible = true
                 ORDER BY sequence ASC
             """)

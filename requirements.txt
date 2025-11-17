@@ -6,3 +6,5 @@ pandas>=2.2
 requests
 openai
 markdown
+selenium
+webdriver-manager

@@ -251,7 +251,7 @@ def get_basic_questions(tenant: str):
         "portfolio / github / site":  {"label": "Você possui algum site, github ou link com seu portfólio? se sim, digite o endereço de acesso. caso contrário é só responder não.", "answer_type": "text"},
         "phone":  {"label": "Qual o seu telefone?", "answer_type": "text"},
         "telefone":  {"label": "Qual o seu telefone?", "answer_type": "text"},
-        "source": {"label": "Como você ficou sabendo da vaga? escolha uma das opções abaixo", "answer_type": "options"},
+        "source": {"label": "Como você ficou sabendo da vaga? escolha uma das opções abaixo", "answer_type": "options"}
     }
 
     # Lista de chaves ignoradas
@@ -267,7 +267,7 @@ def get_basic_questions(tenant: str):
         # Busca campos configurados
         fields_sql = text(f"""
             SELECT id, key, visible, required
-            FROM mi{tenant}ndsight.ats_candidateregisterfield
+            FROM {tenant}.ats_candidateregisterfield
             ORDER BY id
         """)
         fields = conn.execute(fields_sql).mappings().all()

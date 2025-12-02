@@ -193,6 +193,7 @@ def add_application():
 def create_job_posting():
     name = request.args.get("name")
     tenant = request.args.get("tenant")
+    job_code = request.args.get("job_code")
 
     if not name:
         return jsonify({"error": "Parâmetro 'name' é obrigatório"}), 400
@@ -204,8 +205,8 @@ def create_job_posting():
     now = datetime.utcnow()
 
     with engine.begin() as conn:
-        insert_sql = text("""
-            INSERT INTO mindsight.ats_jobposting (
+        insert_sql = text(f"""
+            INSERT INTO {tenant}.ats_jobposting (
                 name,
                 status,
                 positions,
@@ -222,7 +223,8 @@ def create_job_posting():
                 careerjet_external_publication,
                 jooble_external_publication,
                 competencies,
-                question_sequence
+                question_sequence,
+                job_code 
             ) VALUES (
                 :name,
                 :status,
@@ -240,7 +242,8 @@ def create_job_posting():
                 :careerjet_external_publication,
                 :jooble_external_publication,
                 :competencies,
-                :question_sequence
+                :question_sequence,
+                :job_code
             )
             RETURNING id
         """)
@@ -262,7 +265,8 @@ def create_job_posting():
             "careerjet_external_publication": False,
             "jooble_external_publication": False,
             "competencies": [],
-            "question_sequence": json.dumps(question_json, ensure_ascii=False)
+            "question_sequence": json.dumps(question_json, ensure_ascii=False),
+            "job_code": job_code
         })
 
         new_id = result.scalar()
